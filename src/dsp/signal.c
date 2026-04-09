@@ -927,6 +927,47 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
     if (strcmp(key, "name")         == 0) return snprintf(buf, buf_len, "Signal");
     if (strcmp(key, "chain_params") == 0) return snprintf(buf, buf_len, "%s", CHAIN_PARAMS_JSON);
 
+    /* ui_hierarchy — Schwung calls this to discover page structure.
+     * Without it, getComponentHierarchy() returns null and Schwung falls
+     * back to the preset browser instead of showing the menu. */
+    if (strcmp(key, "ui_hierarchy") == 0) {
+        return snprintf(buf, buf_len,
+            "{\"modes\":null,\"levels\":{"
+            "\"root\":{\"name\":\"Signal\","
+            "\"knobs\":[\"seq1\",\"seq2\",\"seq3\",\"seq4\",\"syn1\",\"syn2\",\"syn3\",\"syn4\"],"
+            "\"params\":["
+            "{\"level\":\"mix\",\"label\":\"Mix\"},"
+            "{\"level\":\"params\",\"label\":\"Params\"},"
+            "{\"level\":\"voice1\",\"label\":\"Voix 1\"},"
+            "{\"level\":\"voice2\",\"label\":\"Voix 2\"},"
+            "{\"level\":\"voice3\",\"label\":\"Voix 3\"},"
+            "{\"level\":\"voice4\",\"label\":\"Voix 4\"},"
+            "{\"level\":\"general\",\"label\":\"General\"}"
+            "]},"
+            "\"mix\":{\"name\":\"Mix\","
+            "\"knobs\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"],"
+            "\"params\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"]},"
+            "\"params\":{\"name\":\"Params\","
+            "\"knobs\":[\"root\",\"scale\",\"density\",\"chaos\",\"gravity\",\"clk_div\",\"morse_spd\",\"swing\"],"
+            "\"params\":[\"root\",\"scale\",\"density\",\"chaos\",\"gravity\",\"clk_div\",\"morse_spd\",\"swing\"]},"
+            "\"voice1\":{\"name\":\"Voix 1\","
+            "\"knobs\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_attack\",\"v1_decay\",\"v1_pan\"],"
+            "\"params\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_attack\",\"v1_decay\",\"v1_pan\"]},"
+            "\"voice2\":{\"name\":\"Voix 2\","
+            "\"knobs\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_attack\",\"v2_decay\",\"v2_pan\"],"
+            "\"params\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_attack\",\"v2_decay\",\"v2_pan\"]},"
+            "\"voice3\":{\"name\":\"Voix 3\","
+            "\"knobs\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_attack\",\"v3_decay\",\"v3_pan\"],"
+            "\"params\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_attack\",\"v3_decay\",\"v3_pan\"]},"
+            "\"voice4\":{\"name\":\"Voix 4\","
+            "\"knobs\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\"],"
+            "\"params\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\"]},"
+            "\"general\":{\"name\":\"General\","
+            "\"knobs\":[\"master_vol\",\"tempo_sync\",\"stereo_w\",\"bit_crush\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"],"
+            "\"params\":[\"master_vol\",\"tempo_sync\",\"stereo_w\",\"bit_crush\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"]}"
+            "}}");
+    }
+
     /* Knob overlay (page-aware) */
     if (strncmp(key, "knob_", 5) == 0) {
         int kn = atoi(key + 5) - 1; /* 0-based */
