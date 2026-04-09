@@ -19,12 +19,12 @@
       "levels": {
         "root": {
           "name": "Signal",
-          "knobs": ["seq1", "seq2", "seq3", "seq4", "syn1", "syn2", "syn3", "syn4"],
+          "knobs": ["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"],
           "params": [
             {"level": "generate",   "label": "Generate"},
-            {"level": "params",     "label": "Params"},
-            {"level": "modulation", "label": "Modulation"},
             {"level": "patch",      "label": "Patch"},
+            {"level": "params",     "label": "Sequences"},
+            {"level": "modulation", "label": "Modulation"},
             {"level": "mix",        "label": "Mix"},
             {"level": "voice1",     "label": "Voice 1"},
             {"level": "voice2",     "label": "Voice 2"},
@@ -33,40 +33,20 @@
             {"level": "general",    "label": "General"}
           ]
         },
-        "generate":   {"name": "Generate",   "knobs": ["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"], "params": ["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"]},
-        "params":     {"name": "Params",     "knobs": ["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"], "params": ["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"]},
+        "generate":   {"name":"Generate",   "knobs":["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"], "params":["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"]},
+        "patch":      {"name":"Patch",      "knobs":["patch","rnd_patch","rnd_rytm","rnd_voices","rnd_mod","rnd_pitch","rnd_pan","all_decay"], "params":["patch","rnd_patch","rnd_rytm","rnd_voices","rnd_mod","rnd_pitch","rnd_pan","all_decay","same_voice"]},
+        "params":     {"name":"Sequences",  "knobs":["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"], "params":["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"]},
         "modulation": {
           "name": "Modulation",
           "knobs": ["mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"],
           "params": ["mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset","mod_offset"]
         },
-        "patch":      {"name": "Patch",      "knobs": ["patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"], "params": ["patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"]},
-        "mix":        {"name": "Mix",        "knobs": ["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"], "params": ["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"]},
-        "voice1": {
-          "name": "Voice 1",
-          "knobs": ["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan"],
-          "params": ["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan","v1_attack","v1_sub_div","v1_sweep"]
-        },
-        "voice2": {
-          "name": "Voice 2",
-          "knobs": ["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan"],
-          "params": ["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan","v2_attack","v2_sub_div","v2_sweep"]
-        },
-        "voice3": {
-          "name": "Voice 3",
-          "knobs": ["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan"],
-          "params": ["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan","v3_attack","v3_sub_div","v3_sweep"]
-        },
-        "voice4": {
-          "name": "Voice 4",
-          "knobs": ["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan"],
-          "params": ["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan","v4_attack","v4_sub_div","v4_sweep"]
-        },
-        "general": {
-          "name": "General",
-          "knobs": ["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter"],
-          "params": ["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter","dc_filter","out_mode"]
-        }
+        "mix":        {"name":"Mix",        "knobs":["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"], "params":["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"]},
+        "voice1": {"name":"Voice 1","knobs":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan"],"params":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan","v1_attack","v1_sub_div","v1_sweep"]},
+        "voice2": {"name":"Voice 2","knobs":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan"],"params":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan","v2_attack","v2_sub_div","v2_sweep"]},
+        "voice3": {"name":"Voice 3","knobs":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan"],"params":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan","v3_attack","v3_sub_div","v3_sweep"]},
+        "voice4": {"name":"Voice 4","knobs":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan"],"params":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan","v4_attack","v4_sub_div","v4_sweep"]},
+        "general": {"name":"General","knobs":["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter"],"params":["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter","dc_filter","out_mode"]}
       }
     },
     "chain_params": [
@@ -78,6 +58,16 @@
       {"key":"syn2","name":"Syn 2","type":"int","min":0,"max":40,"step":1},
       {"key":"syn3","name":"Syn 3","type":"int","min":0,"max":40,"step":1},
       {"key":"syn4","name":"Syn 4","type":"int","min":0,"max":40,"step":1},
+
+      {"key":"patch","name":"Patch","type":"enum","options":["Init","Ikeda Grid","Bernier","Morse CQ","Mathcore","Pink Rain","Heterodyne","Sub Harm","CA Automata","FM Bell","AM Texture","Brown Pulse","Clk Matrix","Sweep Casc","Fibonacci","Digi Glitch","Chirp Field","Phase Cloud","Test Signal","CW Radio","Cantor","Noise Gate","Sub Bass","Thue-Morse","Pink Grid","Metallic FM","Minimal","Maximum","Rule 30","Freq Lat."]},
+      {"key":"rnd_patch","name":"Rnd Patch","type":"enum","options":["0","1"]},
+      {"key":"rnd_rytm","name":"Rnd Rytm","type":"enum","options":["0","1"]},
+      {"key":"rnd_voices","name":"Rnd Voices","type":"enum","options":["0","1"]},
+      {"key":"rnd_mod","name":"Rnd Mod","type":"enum","options":["0","1"]},
+      {"key":"rnd_pitch","name":"Rnd Pitch","type":"enum","options":["0","1"]},
+      {"key":"rnd_pan","name":"Rnd Pan","type":"enum","options":["0","1"]},
+      {"key":"all_decay","name":"All Decay","type":"float","min":0,"max":1,"step":0.01},
+      {"key":"same_voice","name":"Same Voice","type":"enum","options":["0","1"]},
 
       {"key":"v1_level","name":"V1 Level","type":"float","min":0,"max":1,"step":0.01},
       {"key":"v2_level","name":"V2 Level","type":"float","min":0,"max":1,"step":0.01},
@@ -105,16 +95,7 @@
       {"key":"mod_pan","name":"Pan Mod","type":"float","min":0,"max":1,"step":0.01},
       {"key":"mod_density","name":"Density Mod","type":"float","min":0,"max":1,"step":0.01},
       {"key":"mod_shape","name":"Mod Shape","type":"enum","options":["Sine","Tri","Saw","Square","S&H","Random"]},
-      {"key":"mod_reset","name":"Mod Reset","type":"int","min":0,"max":1,"step":1},
-
-      {"key":"patch","name":"Patch","type":"enum","options":["Init","Ikeda Grid","Bernier","Morse CQ","Mathcore","Pink Rain","Heterodyne","Sub Harm","CA Automata","FM Bell","AM Texture","Brown Pulse","Clk Matrix","Sweep Casc","Fibonacci","Digi Glitch","Chirp Field","Phase Cloud","Test Signal","CW Radio","Cantor","Noise Gate","Sub Bass","Thue-Morse","Pink Grid","Metallic FM","Minimal","Maximum","Rule 30","Freq Lat."]},
-      {"key":"rnd_patch","name":"Rnd Patch","type":"int","min":0,"max":1,"step":1},
-      {"key":"rnd_rytm","name":"Rnd Rytm","type":"int","min":0,"max":1,"step":1},
-      {"key":"rnd_voices","name":"Rnd Voices","type":"int","min":0,"max":1,"step":1},
-      {"key":"same_voice","name":"Same Voice","type":"int","min":0,"max":1,"step":1},
-      {"key":"rnd_mod","name":"Rnd Mod","type":"int","min":0,"max":1,"step":1},
-      {"key":"rnd_pitch","name":"Rnd Pitch","type":"int","min":0,"max":1,"step":1},
-      {"key":"rnd_pan","name":"Rnd Pan","type":"int","min":0,"max":1,"step":1},
+      {"key":"mod_reset","name":"Mod Reset","type":"enum","options":["0","1"]},
 
       {"key":"v1_preset","name":"V1 Preset","type":"int","min":0,"max":40,"step":1},
       {"key":"v1_vol","name":"V1 Vol","type":"float","min":0,"max":1,"step":0.01},
