@@ -57,10 +57,10 @@ static const char *SCALE_NAMES[] = {
     "Free","Chromatic","Major","Minor","Pentatonic","WholeTone","Diminished","HarmMin"
 };
 
-enum { PAGE_ROOT=0, PAGE_MIX, PAGE_PARAMS,
+enum { PAGE_ROOT=0, PAGE_GENERATE, PAGE_MIX, PAGE_PARAMS,
        PAGE_VOICE1, PAGE_VOICE2, PAGE_VOICE3, PAGE_VOICE4, PAGE_GENERAL };
 static const char *PAGE_NAMES[] = {
-    "Signal","mix","params","voice1","voice2","voice3","voice4","general"
+    "Signal","generate","mix","params","voice1","voice2","voice3","voice4","general"
 };
 
 /* ── Rhythm pattern data ──────────────────────────────────────────────────── */
@@ -458,10 +458,16 @@ typedef struct {
     int    tempo_sync;      /* 0=Free, 1=Sync */
     float  stereo_w;
     int    bit_crush;
+    float  bit_rate;        /* 0=off, 1=max decimation (sample-rate reduction) */
     float  drift;
     float  jitter;
     int    dc_filter;
     int    out_mode;
+
+    /* Bit-rate decimation state */
+    float  bit_rate_accum;
+    float  bit_rate_hold_l;
+    float  bit_rate_hold_r;
 
     /* Clock/transport */
     float    bpm;           /* host-provided or default */
@@ -570,13 +576,14 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
     signal_instance_t *inst = calloc(1, sizeof(signal_instance_t));
     if (!inst) return NULL;
 
-    inst->master_vol = 0.8f;
+    inst->master_vol = 1.0f;
     inst->bpm        = 120.0f;
     inst->tempo_sync = 1;
     inst->clk_div    = 1;
     inst->density    = 1.0f;
-    inst->stereo_w   = 0.5f;
+    inst->stereo_w   = 1.0f;
     inst->bit_crush  = 16;
+    inst->bit_rate   = 0.0f;
     inst->dc_filter  = 1;
     inst->rng        = 0xDEADBEEFu;
 
@@ -708,7 +715,7 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
     }
 
     /* BPM from host */
-    if (strcmp(key, "bpm") == 0) { inst->bpm = clampf(atof(val), 20.0f, 999.0f); return; }
+    if (strcmp(key, "bpm") == 0) { inst->bpm = clampf(atof(val), 20.0f, 500.0f); return; }
 
     /* Page 1: seq/syn presets */
     for (int v = 0; v < NUM_VOICES; v++) {
@@ -792,6 +799,7 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
 
     /* Page 8: General */
     if (strcmp(key, "master_vol") == 0) { inst->master_vol = clampf(atof(val), 0, 1); return; }
+    if (strcmp(key, "bit_rate")   == 0) { inst->bit_rate   = clampf(atof(val), 0, 1); return; }
     if (strcmp(key, "tempo_sync") == 0) {
         if (strcmp(val, "Sync") == 0 || atoi(val) == 1) inst->tempo_sync = 1;
         else inst->tempo_sync = 0;
@@ -890,18 +898,22 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v4_attack\",\"name\":\"V4 Attack\",\"type\":\"float\",\"min\":0.0001,\"max\":0.05,\"step\":0.0001},"
     "{\"key\":\"v4_decay\",\"name\":\"V4 Decay\",\"type\":\"float\",\"min\":0.0001,\"max\":0.1,\"step\":0.0001},"
     "{\"key\":\"v4_pan\",\"name\":\"V4 Pan\",\"type\":\"float\",\"min\":-1,\"max\":1,\"step\":0.01},"
-    "{\"key\":\"master_vol\",\"name\":\"Master Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
+    "{\"key\":\"master_vol\",\"name\":\"Volume\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"tempo_sync\",\"name\":\"Sync\",\"type\":\"enum\",\"options\":[\"Free\",\"Sync\"]},"
-    "{\"key\":\"stereo_w\",\"name\":\"Stereo W\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
+    "{\"key\":\"bpm\",\"name\":\"BPM\",\"type\":\"float\",\"min\":20,\"max\":500,\"step\":1},"
     "{\"key\":\"bit_crush\",\"name\":\"Bit Crush\",\"type\":\"int\",\"min\":1,\"max\":16,\"step\":1},"
+    "{\"key\":\"bit_rate\",\"name\":\"Bit Rate\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
+    "{\"key\":\"stereo_w\",\"name\":\"Stereo W\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"drift\",\"name\":\"Drift\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"jitter\",\"name\":\"Jitter\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"dc_filter\",\"name\":\"DC Filt\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
     "{\"key\":\"out_mode\",\"name\":\"Out Mode\",\"type\":\"enum\",\"options\":[\"Stereo\",\"Mono\",\"Spread\"]}]";
 
 /* ── Knob page maps ───────────────────────────────────────────────────────── */
-static const char *KNOB_KEYS[8][8] = {
-    /* PAGE_ROOT */
+static const char *KNOB_KEYS[9][8] = {
+    /* PAGE_ROOT — mirrors generate so chain_edit hover still controls seq/syn */
+    {"seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"},
+    /* PAGE_GENERATE */
     {"seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"},
     /* PAGE_MIX */
     {"v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"},
@@ -916,7 +928,7 @@ static const char *KNOB_KEYS[8][8] = {
     /* PAGE_VOICE4 */
     {"v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_attack","v4_decay","v4_pan"},
     /* PAGE_GENERAL */
-    {"master_vol","tempo_sync","stereo_w","bit_crush","drift","jitter","dc_filter","out_mode"}
+    {"master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter"}
 };
 
 /* ── get_param ────────────────────────────────────────────────────────────── */
@@ -936,6 +948,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "\"root\":{\"name\":\"Signal\","
             "\"knobs\":[\"seq1\",\"seq2\",\"seq3\",\"seq4\",\"syn1\",\"syn2\",\"syn3\",\"syn4\"],"
             "\"params\":["
+            "{\"level\":\"generate\",\"label\":\"Generate\"},"
             "{\"level\":\"mix\",\"label\":\"Mix\"},"
             "{\"level\":\"params\",\"label\":\"Params\"},"
             "{\"level\":\"voice1\",\"label\":\"Voix 1\"},"
@@ -944,6 +957,9 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "{\"level\":\"voice4\",\"label\":\"Voix 4\"},"
             "{\"level\":\"general\",\"label\":\"General\"}"
             "]},"
+            "\"generate\":{\"name\":\"Generate\","
+            "\"knobs\":[\"seq1\",\"seq2\",\"seq3\",\"seq4\",\"syn1\",\"syn2\",\"syn3\",\"syn4\"],"
+            "\"params\":[\"seq1\",\"seq2\",\"seq3\",\"seq4\",\"syn1\",\"syn2\",\"syn3\",\"syn4\"]},"
             "\"mix\":{\"name\":\"Mix\","
             "\"knobs\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"],"
             "\"params\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"]},"
@@ -963,8 +979,8 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "\"knobs\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\"],"
             "\"params\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\"]},"
             "\"general\":{\"name\":\"General\","
-            "\"knobs\":[\"master_vol\",\"tempo_sync\",\"stereo_w\",\"bit_crush\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"],"
-            "\"params\":[\"master_vol\",\"tempo_sync\",\"stereo_w\",\"bit_crush\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"]}"
+            "\"knobs\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\"],"
+            "\"params\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"]}"
             "}}");
     }
 
@@ -973,7 +989,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         int kn = atoi(key + 5) - 1; /* 0-based */
         if (kn < 0 || kn > 7) return -1;
         int pg = inst->current_page;
-        if (pg < 0 || pg > 7) pg = 0;
+        if (pg < 0 || pg > 8) pg = 0;
         const char *kkey = KNOB_KEYS[pg][kn];
         if (strstr(key, "_name"))
             return snprintf(buf, buf_len, "%s", kkey);
@@ -1034,8 +1050,10 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
     /* Page 8 */
     if (strcmp(key, "master_vol") == 0) return snprintf(buf, buf_len, "%.4f", inst->master_vol);
     if (strcmp(key, "tempo_sync") == 0) return snprintf(buf, buf_len, "%s", inst->tempo_sync ? "Sync" : "Free");
+    if (strcmp(key, "bpm")        == 0) return snprintf(buf, buf_len, "%.1f", inst->bpm);
     if (strcmp(key, "stereo_w")   == 0) return snprintf(buf, buf_len, "%.4f", inst->stereo_w);
     if (strcmp(key, "bit_crush")  == 0) return snprintf(buf, buf_len, "%d", inst->bit_crush);
+    if (strcmp(key, "bit_rate")   == 0) return snprintf(buf, buf_len, "%.4f", inst->bit_rate);
     if (strcmp(key, "drift")      == 0) return snprintf(buf, buf_len, "%.4f", inst->drift);
     if (strcmp(key, "jitter")     == 0) return snprintf(buf, buf_len, "%.4f", inst->jitter);
     if (strcmp(key, "dc_filter")  == 0) return snprintf(buf, buf_len, "%s", inst->dc_filter ? "On" : "Off");
@@ -1055,7 +1073,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
 
         STATE_W("density=%.4f;chaos=%.4f;gravity=%.4f;", inst->density, inst->chaos, inst->gravity);
         STATE_W("clk_div=%d;morse_spd=%.4f;swing=%.4f;", inst->clk_div, inst->morse_spd, inst->swing);
-        STATE_W("master_vol=%.4f;stereo_w=%.4f;bit_crush=%d;", inst->master_vol, inst->stereo_w, inst->bit_crush);
+        STATE_W("master_vol=%.4f;stereo_w=%.4f;bit_crush=%d;bit_rate=%.4f;bpm=%.1f;", inst->master_vol, inst->stereo_w, inst->bit_crush, inst->bit_rate, inst->bpm);
         STATE_W("drift=%.4f;jitter=%.4f;", inst->drift, inst->jitter);
         STATE_W("root=%s;scale=%s;tempo_sync=%s;", ROOT_NAMES[inst->root], SCALE_NAMES[inst->scale], inst->tempo_sync ? "Sync" : "Free");
         for (int v = 0; v < NUM_VOICES; v++) {
@@ -1209,11 +1227,24 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
             mix_r = mid - side * w;
         }
 
-        /* Bit crusher */
+        /* Bit crusher (bit depth) */
         if (inst->bit_crush < 16) {
             float levels = (float)(1 << inst->bit_crush);
             mix_l = floorf(mix_l * levels + 0.5f) / levels;
             mix_r = floorf(mix_r * levels + 0.5f) / levels;
+        }
+
+        /* Bit rate (sample-rate decimation: hold 1–44 samples → 44100–1000 Hz) */
+        if (inst->bit_rate > 0.0f) {
+            float hold = 1.0f + inst->bit_rate * 43.0f;
+            inst->bit_rate_accum += 1.0f;
+            if (inst->bit_rate_accum >= hold) {
+                inst->bit_rate_accum -= hold;
+                inst->bit_rate_hold_l = mix_l;
+                inst->bit_rate_hold_r = mix_r;
+            }
+            mix_l = inst->bit_rate_hold_l;
+            mix_r = inst->bit_rate_hold_r;
         }
 
         /* DC blocker (1-pole highpass ~20 Hz) */
