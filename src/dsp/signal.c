@@ -1140,13 +1140,13 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         if (iv >= 0 && iv < NUM_PATCHES) apply_patch(inst, iv);
         return;
     }
-    if (strcmp(key, "rnd_patch")  == 0) { do_rnd_patch(inst);  return; }
-    if (strcmp(key, "rnd_rytm")   == 0) { do_rnd_rytm(inst);   return; }
-    if (strcmp(key, "rnd_voices") == 0) { do_rnd_voices(inst); return; }
-    if (strcmp(key, "same_voice") == 0) { do_same_voice(inst); return; }
-    if (strcmp(key, "rnd_mod")    == 0) { do_rnd_mod(inst);    return; }
-    if (strcmp(key, "rnd_pitch")  == 0) { do_rnd_pitch(inst);  return; }
-    if (strcmp(key, "rnd_pan")    == 0) { do_rnd_pan(inst);    return; }
+    if (strcmp(key, "rnd_patch")  == 0) { if (atoi(val)==1) do_rnd_patch(inst);  return; }
+    if (strcmp(key, "rnd_rytm")   == 0) { if (atoi(val)==1) do_rnd_rytm(inst);   return; }
+    if (strcmp(key, "rnd_voices") == 0) { if (atoi(val)==1) do_rnd_voices(inst); return; }
+    if (strcmp(key, "same_voice") == 0) { if (atoi(val)==1) do_same_voice(inst); return; }
+    if (strcmp(key, "rnd_mod")    == 0) { if (atoi(val)==1) do_rnd_mod(inst);    return; }
+    if (strcmp(key, "rnd_pitch")  == 0) { if (atoi(val)==1) do_rnd_pitch(inst);  return; }
+    if (strcmp(key, "rnd_pan")    == 0) { if (atoi(val)==1) do_rnd_pan(inst);    return; }
 
     /* Modulation page */
     if (strcmp(key, "mod_speed")   == 0) { inst->mod_speed   = clampf(atof(val), 0, 1); return; }
@@ -1178,7 +1178,7 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         return;
     }
     if (strcmp(key, "mod_reset") == 0) {
-        /* Reset all LFO phases regardless of value sent */
+        if (atoi(val) != 1) return; /* only fire on 1 */
         for (int v = 0; v < NUM_VOICES; v++) {
             inst->vlfo_phase[v]  = 0.0f;
             inst->vlfo_sh_val[v] = 0.0f;
@@ -1301,13 +1301,13 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v4_sweep\",\"name\":\"V4 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v4_detune\",\"name\":\"V4 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
     "{\"key\":\"patch\",\"name\":\"Patch\",\"type\":\"enum\",\"options\":[\"Init\",\"Ikeda Grid\",\"Bernier\",\"Morse CQ\",\"Mathcore\",\"Pink Rain\",\"Heterodyne\",\"Sub Harm\",\"CA Automata\",\"FM Bell\",\"AM Texture\",\"Brown Pulse\",\"Clk Matrix\",\"Sweep Casc\",\"Fibonacci\",\"Digi Glitch\",\"Chirp Field\",\"Phase Cloud\",\"Test Signal\",\"CW Radio\",\"Cantor\",\"Noise Gate\",\"Sub Bass\",\"Thue-Morse\",\"Pink Grid\",\"Metallic FM\",\"Minimal\",\"Maximum\",\"Rule 30\",\"Freq Lat.\"]},"
-    "{\"key\":\"rnd_patch\",\"name\":\"Rnd Patch\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"rnd_rytm\",\"name\":\"Rnd Rytm\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"rnd_voices\",\"name\":\"Rnd Voices\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"same_voice\",\"name\":\"Same Voice\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"rnd_mod\",\"name\":\"Rnd Mod\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"rnd_pitch\",\"name\":\"Rnd Pitch\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
-    "{\"key\":\"rnd_pan\",\"name\":\"Rnd Pan\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_patch\",\"name\":\"Rnd Patch\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"rnd_rytm\",\"name\":\"Rnd Rytm\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"rnd_voices\",\"name\":\"Rnd Voices\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"same_voice\",\"name\":\"Same Voice\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"rnd_mod\",\"name\":\"Rnd Mod\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"rnd_pitch\",\"name\":\"Rnd Pitch\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"rnd_pan\",\"name\":\"Rnd Pan\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
     "{\"key\":\"mod_speed\",\"name\":\"Mod Speed\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_offset\",\"name\":\"Mod Offset\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_freq\",\"name\":\"Freq Mod\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
@@ -1315,7 +1315,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"mod_pan\",\"name\":\"Pan Mod\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_density\",\"name\":\"Density Mod\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_shape\",\"name\":\"Mod Shape\",\"type\":\"enum\",\"options\":[\"Sine\",\"Tri\",\"Saw\",\"Square\",\"S&H\",\"Random\"]},"
-    "{\"key\":\"mod_reset\",\"name\":\"Mod Reset\",\"type\":\"enum\",\"options\":[\"Reset\"]},"
+    "{\"key\":\"mod_reset\",\"name\":\"Mod Reset\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
     "{\"key\":\"master_vol\",\"name\":\"Volume\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"tempo_sync\",\"name\":\"Sync\",\"type\":\"enum\",\"options\":[\"Free\",\"Sync\"]},"
     "{\"key\":\"bpm\",\"name\":\"BPM\",\"type\":\"float\",\"min\":20,\"max\":500,\"step\":1},"
@@ -1489,13 +1489,13 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
 
     /* Patch page */
     if (strcmp(key, "patch")      == 0) return snprintf(buf, buf_len, "%s", PATCH_NAMES[inst->patch_idx]);
-    if (strcmp(key, "rnd_patch")  == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "rnd_rytm")   == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "rnd_voices") == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "same_voice") == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "rnd_mod")    == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "rnd_pitch")  == 0) return snprintf(buf, buf_len, "Trigger");
-    if (strcmp(key, "rnd_pan")    == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_patch")  == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "rnd_rytm")   == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "rnd_voices") == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "same_voice") == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "rnd_mod")    == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "rnd_pitch")  == 0) return snprintf(buf, buf_len, "0");
+    if (strcmp(key, "rnd_pan")    == 0) return snprintf(buf, buf_len, "0");
 
     /* Modulation */
     if (strcmp(key, "mod_speed")   == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_speed);
@@ -1505,7 +1505,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
     if (strcmp(key, "mod_pan")     == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_pan);
     if (strcmp(key, "mod_density") == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_density);
     if (strcmp(key, "mod_shape")   == 0) return snprintf(buf, buf_len, "%s", MOD_SHAPE_NAMES[inst->mod_shape]);
-    if (strcmp(key, "mod_reset")   == 0) return snprintf(buf, buf_len, "Reset");
+    if (strcmp(key, "mod_reset")   == 0) return snprintf(buf, buf_len, "0");
 
     /* Page 8 */
     if (strcmp(key, "master_vol") == 0) return snprintf(buf, buf_len, "%.4f", inst->master_vol);
