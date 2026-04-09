@@ -453,6 +453,7 @@ typedef struct {
     float  lp_state;
     float  tone_smooth;     /* 20ms-smoothed tone for click-free LP coeff */
     float  vel;             /* pad velocity scale 0–1 (1.0 for sequencer hits) */
+    int    hit_sub_div;     /* row-based sub_div override for this hit (0 = use vp->sub_div) */
 
     /* Noise LP filter state (cutoff = freq, applied to Noise/Pink/Brown) */
     float  noise_lp;
@@ -609,13 +610,15 @@ static void voice_trigger(voice_t *v) {
     v->phase2    = 0.0f;
     v->fm_phase  = 0.0f;
     v->lp_state  = 0.0f;
-    v->vel       = 1.0f; /* sequencer hits are always full velocity */
+    v->vel         = 1.0f; /* sequencer hits are always full velocity */
+    v->hit_sub_div = 0;    /* sequencer: use knob sub_div */
     /* brown_last kept — avoids click from hard reset */
 }
 
-static void voice_trigger_pad(voice_t *v, float velocity) {
+static void voice_trigger_pad(voice_t *v, float velocity, int row_sub_div) {
     voice_trigger(v);
-    v->vel = velocity; /* pad hits scale by MIDI velocity */
+    v->vel         = velocity;
+    v->hit_sub_div = row_sub_div; /* row-based octave override */
 }
 
 static float voice_generate(voice_t *v, float freq) {
@@ -960,6 +963,9 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
         inst->vlfo_shape[v]  = MOD_SHAPE_SINE;
     }
 
+    /* Boot with a random named patch so every load starts fresh */
+    apply_patch(inst, rnd_int(&inst->rng, NUM_PATCHES));
+
     return inst;
 }
 
@@ -1039,10 +1045,19 @@ static void on_midi(void *instance, const uint8_t *msg, int len, int source) {
     if (len < 3) return;
     uint8_t ch_status = status & 0xF0;
 
-    /* Drum kit pad layout — note % 4 maps to voice (4 identical rows) */
+    /* Drum kit pad layout:
+     *   Column (note % 4)     → voice 0-3
+     *   Row    ((note/4) % 4) → sub_div octave override
+     *   Bottom row (notes 36-39): row index 1 → sub_div 1  (normal pitch)
+     *   Row 2  (notes 40-43): row index 2 → sub_div 2  (1 octave down)
+     *   Row 3  (notes 44-47): row index 3 → sub_div 4  (2 octaves down)
+     *   Top row (notes 48-51): row index 0 → sub_div 8  (3 octaves down)
+     * Table indexed by (note/4)%4 = {8,1,2,4} maps to sub_div per row. */
     if (ch_status == 0x90 && msg[2] > 0) {
-        int vi = (int)msg[1] % NUM_VOICES;
-        voice_trigger_pad(&inst->voices[vi], (float)msg[2] / 127.0f);
+        static const int ROW_SUBDIV[4] = {8, 1, 2, 4};
+        int vi  = (int)msg[1] % NUM_VOICES;
+        int row = ((int)msg[1] / 4) % 4;
+        voice_trigger_pad(&inst->voices[vi], (float)msg[2] / 127.0f, ROW_SUBDIV[row]);
         return;
     }
     if (ch_status == 0x80 || (ch_status == 0x90 && msg[2] == 0)) {
@@ -1711,13 +1726,17 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
             } else if (vp->env_stage == 1) {
                 float rate = 1.0f / (decay_t * SAMPLE_RATE);
                 vp->env -= vp->env * rate * 4.0f;
-                if (vp->env < 0.0001f) { vp->env = 0.0f; vp->env_stage = -1; }
+                if (vp->env < 0.0001f) {
+                    vp->env = 0.0f; vp->env_stage = -1;
+                    vp->hit_sub_div = 0; /* clear row override when note ends */
+                }
             }
 
             if (vp->env <= 0.0f) continue;
 
-            /* ── Frequency: sub_div → sweep → LFO mod → drift → quantize ── */
-            float freq = vp->freq / (float)vp->sub_div;
+            /* ── Frequency: sub_div (row override > knob) → sweep → LFO mod → drift → quantize ── */
+            int eff_sub_div = (vp->hit_sub_div > 0) ? vp->hit_sub_div : vp->sub_div;
+            float freq = vp->freq / (float)eff_sub_div;
 
             /* Sweep: pitch arc peaks at 2^sweep octaves up when env=1 */
             if (vp->sweep > 0.0f)
