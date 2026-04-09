@@ -35,7 +35,11 @@
         },
         "generate":   {"name": "Generate",   "knobs": ["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"], "params": ["seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"]},
         "params":     {"name": "Params",     "knobs": ["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"], "params": ["root","scale","density","chaos","gravity","clk_div","morse_spd","swing"]},
-        "modulation": {"name": "Modulation", "knobs": ["mod_speed","mod_offset","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"], "params": ["mod_speed","mod_offset","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"]},
+        "modulation": {
+          "name": "Modulation",
+          "knobs": ["mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"],
+          "params": ["mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset","mod_offset"]
+        },
         "patch":      {"name": "Patch",      "knobs": ["patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"], "params": ["patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"]},
         "mix":        {"name": "Mix",        "knobs": ["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"], "params": ["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"]},
         "voice1": {
@@ -93,6 +97,7 @@
       {"key":"morse_spd","name":"Morse Spd","type":"float","min":0,"max":1,"step":0.01},
       {"key":"swing","name":"Swing","type":"float","min":0,"max":1,"step":0.01},
 
+      {"key":"mod_amount","name":"Mod Amt","type":"float","min":0,"max":1,"step":0.01},
       {"key":"mod_speed","name":"Mod Speed","type":"float","min":0,"max":1,"step":0.01},
       {"key":"mod_offset","name":"Mod Offset","type":"float","min":0,"max":1,"step":0.01},
       {"key":"mod_freq","name":"Freq Mod","type":"float","min":0,"max":1,"step":0.01},

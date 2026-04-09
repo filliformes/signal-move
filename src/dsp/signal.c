@@ -510,6 +510,7 @@ typedef struct {
     float  bit_rate_hold_r;
 
     /* Modulation LFO */
+    float    mod_amount;     /* 0–1 global LFO depth multiplier */
     float    mod_speed;      /* 0–1 → 0–10 Hz */
     float    mod_offset;     /* 0–1 phase stagger between voices */
     float    mod_freq;       /* freq mod depth */
@@ -801,35 +802,48 @@ static void apply_patch(signal_instance_t *inst, int idx) {
 
 static float rand_scale_freq(signal_instance_t *inst) {
     /* Pick a random MIDI note in musical range and quantize to current scale */
-    int midi = 36 + (int)(randf(&inst->rng) * 49.0f); /* C2–C6 ish */
+    int midi = 36 + (int)(randf(&inst->rng) * 48.99f); /* C2–C6, capped to 48 */
+    if (midi < 21) midi = 21;
+    if (midi > 108) midi = 108;
     float freq = 440.0f * powf(2.0f, (float)(midi - 69) / 12.0f);
-    return quantize_freq(freq, inst->root, inst->scale);
+    freq = quantize_freq(freq, inst->root, inst->scale);
+    /* NaN/Inf guard */
+    if (freq < 20.0f || freq > 20000.0f || freq != freq) freq = 440.0f;
+    return freq;
+}
+
+/* Safe bounded random integer: returns 0..count-1 */
+static inline int rnd_int(uint32_t *rng, int count) {
+    int v = (int)(randf(rng) * (float)count);
+    if (v < 0) v = 0;
+    if (v >= count) v = count - 1;
+    return v;
 }
 
 static void do_rnd_patch(signal_instance_t *inst) {
-    apply_patch(inst, (int)(randf(&inst->rng) * (float)NUM_PATCHES));
+    apply_patch(inst, rnd_int(&inst->rng, NUM_PATCHES));
 }
 
 static void do_rnd_rytm(signal_instance_t *inst) {
     for (int v = 0; v < NUM_VOICES; v++)
-        inst->voices[v].seq_preset = 1 + (int)(randf(&inst->rng) * (float)NUM_SEQ_PRESETS);
+        inst->voices[v].seq_preset = 1 + rnd_int(&inst->rng, NUM_SEQ_PRESETS);
 }
 
 static void do_rnd_voices(signal_instance_t *inst) {
     for (int v = 0; v < NUM_VOICES; v++) {
         voice_t *vp = &inst->voices[v];
-        int syn = 1 + (int)(randf(&inst->rng) * (float)NUM_SYN_PRESETS);
+        int syn = 1 + rnd_int(&inst->rng, NUM_SYN_PRESETS);
         vp->syn_preset = syn;
         voice_apply_synth_preset(vp, syn - 1);
         vp->freq  = 100.0f * powf(80.0f, randf(&inst->rng)); /* 100–8000 Hz exp */
         vp->decay = 0.001f + randf(&inst->rng) * 0.149f;
         vp->tone  = randf(&inst->rng);
-        vp->pan   = (randf(&inst->rng) - 0.5f) * 2.0f;
+        vp->pan   = clampf((randf(&inst->rng) - 0.5f) * 2.0f, -1.0f, 1.0f);
     }
 }
 
 static void do_same_voice(signal_instance_t *inst) {
-    int syn = 1 + (int)(randf(&inst->rng) * (float)NUM_SYN_PRESETS);
+    int syn = 1 + rnd_int(&inst->rng, NUM_SYN_PRESETS);
     float freq  = 100.0f * powf(80.0f, randf(&inst->rng));
     float decay = 0.001f + randf(&inst->rng) * 0.149f;
     float tone  = randf(&inst->rng);
@@ -840,7 +854,6 @@ static void do_same_voice(signal_instance_t *inst) {
         vp->freq  = freq;
         vp->decay = decay;
         vp->tone  = tone;
-        /* Small pan variation so they don't collapse completely to mono */
         vp->pan   = clampf((randf(&inst->rng) - 0.5f) * 0.4f, -1.0f, 1.0f);
     }
 }
@@ -852,7 +865,7 @@ static void do_rnd_mod(signal_instance_t *inst) {
     inst->mod_decay   = randf(&inst->rng) * 0.3f;
     inst->mod_pan     = randf(&inst->rng) * 0.5f;
     inst->mod_density = randf(&inst->rng) * 0.4f;
-    int sh = (int)(randf(&inst->rng) * (float)MOD_NUM_SHAPES);
+    int sh = rnd_int(&inst->rng, MOD_NUM_SHAPES); /* bounded — was OOB causing NaN */
     inst->mod_shape = sh;
     for (int v = 0; v < NUM_VOICES; v++) inst->vlfo_shape[v] = sh;
 }
@@ -864,7 +877,7 @@ static void do_rnd_pitch(signal_instance_t *inst) {
 
 static void do_rnd_pan(signal_instance_t *inst) {
     for (int v = 0; v < NUM_VOICES; v++)
-        inst->voices[v].pan = (randf(&inst->rng) - 0.5f) * 2.0f;
+        inst->voices[v].pan = clampf((randf(&inst->rng) - 0.5f) * 2.0f, -1.0f, 1.0f);
 }
 
 /* ── Lifecycle ────────────────────────────────────────────────────────────── */
@@ -911,6 +924,7 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
     }
 
     /* Modulation LFO defaults */
+    inst->mod_amount  = 1.0f; /* full depth by default */
     inst->mod_speed   = 0.0f;
     inst->mod_offset  = 0.0f;
     inst->mod_freq    = 0.0f;
@@ -966,7 +980,7 @@ static void on_midi(void *instance, const uint8_t *msg, int len, int source) {
                     /* Density + mod_density + chaos gate */
                     float prob = inst->density;
                     if (inst->mod_density > 0.0f) {
-                        float lnorm = (inst->vlfo_value[v] + 1.0f) * 0.5f;
+                        float lnorm = (inst->vlfo_value[v] * inst->mod_amount + 1.0f) * 0.5f;
                         prob *= (1.0f - inst->mod_density + inst->mod_density * lnorm);
                     }
                     if (inst->chaos > 0.0f)
@@ -1149,6 +1163,7 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
     if (strcmp(key, "rnd_pan")    == 0) { if (atoi(val)==1) do_rnd_pan(inst);    return; }
 
     /* Modulation page */
+    if (strcmp(key, "mod_amount")  == 0) { inst->mod_amount  = clampf(atof(val), 0, 1); return; }
     if (strcmp(key, "mod_speed")   == 0) { inst->mod_speed   = clampf(atof(val), 0, 1); return; }
     if (strcmp(key, "mod_offset")  == 0) { inst->mod_offset  = clampf(atof(val), 0, 1); return; }
     if (strcmp(key, "mod_freq")    == 0) { inst->mod_freq    = clampf(atof(val), 0, 1); return; }
@@ -1308,6 +1323,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"rnd_mod\",\"name\":\"Rnd Mod\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
     "{\"key\":\"rnd_pitch\",\"name\":\"Rnd Pitch\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
     "{\"key\":\"rnd_pan\",\"name\":\"Rnd Pan\",\"type\":\"int\",\"min\":0,\"max\":1,\"step\":1},"
+    "{\"key\":\"mod_amount\",\"name\":\"Mod Amt\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_speed\",\"name\":\"Mod Speed\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_offset\",\"name\":\"Mod Offset\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_freq\",\"name\":\"Freq Mod\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
@@ -1335,8 +1351,8 @@ static const char *KNOB_KEYS[11][8] = {
     {"seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"},
     /* PAGE_PARAMS */
     {"root","scale","density","chaos","gravity","clk_div","morse_spd","swing"},
-    /* PAGE_MODULATION */
-    {"mod_speed","mod_offset","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"},
+    /* PAGE_MODULATION — Mod Offset is menu-only (param 9) */
+    {"mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"},
     /* PAGE_PATCH */
     {"patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"},
     /* PAGE_MIX */
@@ -1388,8 +1404,8 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "\"knobs\":[\"root\",\"scale\",\"density\",\"chaos\",\"gravity\",\"clk_div\",\"morse_spd\",\"swing\"],"
             "\"params\":[\"root\",\"scale\",\"density\",\"chaos\",\"gravity\",\"clk_div\",\"morse_spd\",\"swing\"]},"
             "\"modulation\":{\"name\":\"Modulation\","
-            "\"knobs\":[\"mod_speed\",\"mod_offset\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\"],"
-            "\"params\":[\"mod_speed\",\"mod_offset\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\"]},"
+            "\"knobs\":[\"mod_amount\",\"mod_speed\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\"],"
+            "\"params\":[\"mod_amount\",\"mod_speed\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\",\"mod_offset\"]},"
             "\"patch\":{\"name\":\"Patch\","
             "\"knobs\":[\"patch\",\"rnd_patch\",\"rnd_rytm\",\"rnd_voices\",\"same_voice\",\"rnd_mod\",\"rnd_pitch\",\"rnd_pan\"],"
             "\"params\":[\"patch\",\"rnd_patch\",\"rnd_rytm\",\"rnd_voices\",\"same_voice\",\"rnd_mod\",\"rnd_pitch\",\"rnd_pan\"]},"
@@ -1498,6 +1514,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
     if (strcmp(key, "rnd_pan")    == 0) return snprintf(buf, buf_len, "0");
 
     /* Modulation */
+    if (strcmp(key, "mod_amount")  == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_amount);
     if (strcmp(key, "mod_speed")   == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_speed);
     if (strcmp(key, "mod_offset")  == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_offset);
     if (strcmp(key, "mod_freq")    == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_freq);
@@ -1535,7 +1552,8 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         STATE_W("clk_div=%d;morse_spd=%.4f;swing=%.4f;", inst->clk_div, inst->morse_spd, inst->swing);
         STATE_W("master_vol=%.4f;stereo_w=%.4f;bit_crush=%d;bit_rate=%.4f;bpm=%.1f;", inst->master_vol, inst->stereo_w, inst->bit_crush, inst->bit_rate, inst->bpm);
         STATE_W("drift=%.4f;jitter=%.4f;", inst->drift, inst->jitter);
-        STATE_W("mod_speed=%.4f;mod_offset=%.4f;mod_freq=%.4f;mod_decay=%.4f;mod_pan=%.4f;mod_density=%.4f;mod_shape=%s;",
+        STATE_W("mod_amount=%.4f;mod_speed=%.4f;mod_offset=%.4f;mod_freq=%.4f;mod_decay=%.4f;mod_pan=%.4f;mod_density=%.4f;mod_shape=%s;",
+            inst->mod_amount,
             inst->mod_speed, inst->mod_offset, inst->mod_freq, inst->mod_decay,
             inst->mod_pan, inst->mod_density, MOD_SHAPE_NAMES[inst->mod_shape]);
         STATE_W("root=%s;scale=%s;tempo_sync=%s;", ROOT_NAMES[inst->root], SCALE_NAMES[inst->scale], inst->tempo_sync ? "Sync" : "Free");
@@ -1597,7 +1615,7 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
 
         for (int v = 0; v < NUM_VOICES; v++) {
             voice_t *vp = &inst->voices[v];
-            float lfo_v = inst->vlfo_value[v];
+            float lfo_v = inst->vlfo_value[v] * inst->mod_amount;
 
             /* Skip if sequencer or synth off */
             if (vp->seq_preset == 0 || vp->syn_preset == 0) continue;
