@@ -452,6 +452,7 @@ typedef struct {
     /* Tone LP filter state + 20ms smoothed tone coefficient */
     float  lp_state;
     float  tone_smooth;     /* 20ms-smoothed tone for click-free LP coeff */
+    float  vel;             /* pad velocity scale 0–1 (1.0 for sequencer hits) */
 
     /* Noise LP filter state (cutoff = freq, applied to Noise/Pink/Brown) */
     float  noise_lp;
@@ -602,12 +603,18 @@ static void voice_apply_synth_preset(voice_t *v, int preset_idx) {
 
 static void voice_trigger(voice_t *v) {
     v->env       = 0.0f;
-    v->env_stage = 0; /* attack */
+    v->env_stage = 0;
     v->phase     = 0.0f;
     v->phase2    = 0.0f;
     v->fm_phase  = 0.0f;
     v->lp_state  = 0.0f;
+    v->vel       = 1.0f; /* sequencer hits are always full velocity */
     /* brown_last kept — avoids click from hard reset */
+}
+
+static void voice_trigger_pad(voice_t *v, float velocity) {
+    voice_trigger(v);
+    v->vel = velocity; /* pad hits scale by MIDI velocity */
 }
 
 static float voice_generate(voice_t *v, float freq) {
@@ -912,6 +919,7 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
         vp->tone        = 0.5f;
         vp->tone_smooth = 0.5f;
         vp->noise_lp    = 0.0f;
+        vp->vel         = 1.0f;
         vp->pan         = (v - 1.5f) * 0.4f; /* spread -0.6 -0.2 +0.2 +0.6 */
         vp->noise_state = 12345u + (uint32_t)v * 111u;
         vp->env_stage  = -1; /* idle */
@@ -1019,13 +1027,14 @@ static void on_midi(void *instance, const uint8_t *msg, int len, int source) {
     if (len < 3) return;
     uint8_t ch_status = status & 0xF0;
 
-    /* Note On: re-sync all voices */
+    /* Drum kit pad layout — note % 4 maps to voice (4 identical rows) */
     if (ch_status == 0x90 && msg[2] > 0) {
-        for (int v = 0; v < NUM_VOICES; v++) {
-            inst->voices[v].step       = 0;
-            inst->voices[v].step_accum = 0.0f;
-            inst->voices[v].tick_accum = 0.0f;
-        }
+        int vi = (int)msg[1] % NUM_VOICES;
+        voice_trigger_pad(&inst->voices[vi], (float)msg[2] / 127.0f);
+        return;
+    }
+    if (ch_status == 0x80 || (ch_status == 0x90 && msg[2] == 0)) {
+        /* Note Off — voices are one-shot envelopes, nothing to do */
         return;
     }
 
@@ -1667,9 +1676,16 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
             }
 
             /* ── Envelope (with LFO decay mod) ── */
+            /* Decay mod: LFO scales decay from voice value up to max (0.5s).
+             * At mod_decay=1, lfo_v=1: decay_t = 0.5 (full max).
+             * At mod_decay=1, lfo_v=-1: decay_t = voice's own decay value (floor). */
             float decay_t = vp->decay;
-            if (inst->mod_decay > 0.0f)
-                decay_t = clampf(decay_t * (1.0f + lfo_v * inst->mod_decay * 0.5f), 0.0001f, 0.5f);
+            if (inst->mod_decay > 0.0f) {
+                float lfo_norm = (lfo_v + 1.0f) * 0.5f; /* 0..1 */
+                float target = vp->decay + (0.5f - vp->decay) * inst->mod_decay;
+                decay_t = vp->decay + (target - vp->decay) * lfo_norm;
+                decay_t = clampf(decay_t, 0.0001f, 0.5f);
+            }
 
             if (vp->env_stage == 0) {
                 float rate = 1.0f / (vp->attack * SAMPLE_RATE);
@@ -1719,8 +1735,8 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
             vp->lp_state += lp_coeff * (sample - vp->lp_state) + 1e-20f;
             sample = vp->lp_state;
 
-            /* ── Apply envelope + volume ── */
-            sample *= vp->env * vp->vol * vp->level;
+            /* ── Apply envelope + volume + pad velocity ── */
+            sample *= vp->env * vp->vol * vp->level * vp->vel;
 
             /* ── Constant-power pan (with LFO mod) ── */
             float pan = clampf(vp->pan + lfo_v * inst->mod_pan, -1.0f, 1.0f);
