@@ -1,0 +1,144 @@
+{
+  "id": "signal",
+  "name": "Signal",
+  "version": "0.1.0",
+  "api_version": 2,
+  "component_type": "sound_generator",
+  "description": "Polymetric microsound rhythm generator — Ikeda/Bernier/mathcore",
+  "author": "fillioning",
+  "abbrev": "SIGNL",
+  "dsp": "dsp.so",
+  "raw_midi": true,
+  "capabilities": {
+    "audio_out": true,
+    "midi_in": true,
+    "chainable": true,
+    "component_type": "sound_generator",
+    "ui_hierarchy": {
+      "modes": null,
+      "levels": {
+        "root": {
+          "name": "Signal",
+          "knobs": ["seq1", "seq2", "seq3", "seq4", "syn1", "syn2", "syn3", "syn4"],
+          "params": [
+            {"level": "mix",     "label": "Mix"},
+            {"level": "params",  "label": "Params"},
+            {"level": "voice1",  "label": "Voix 1"},
+            {"level": "voice2",  "label": "Voix 2"},
+            {"level": "voice3",  "label": "Voix 3"},
+            {"level": "voice4",  "label": "Voix 4"},
+            {"level": "general", "label": "General"}
+          ]
+        },
+        "mix": {
+          "name": "Mix",
+          "knobs": ["v1_level", "v2_level", "v3_level", "v4_level", "v1_freq", "v2_freq", "v3_freq", "v4_freq"],
+          "params": ["v1_level", "v2_level", "v3_level", "v4_level", "v1_freq", "v2_freq", "v3_freq", "v4_freq"]
+        },
+        "params": {
+          "name": "Params",
+          "knobs": ["root", "scale", "density", "chaos", "gravity", "clk_div", "morse_spd", "swing"],
+          "params": ["root", "scale", "density", "chaos", "gravity", "clk_div", "morse_spd", "swing"]
+        },
+        "voice1": {
+          "name": "Voix 1",
+          "knobs": ["v1_preset", "v1_vol", "v1_vfreq", "v1_wave", "v1_tone", "v1_attack", "v1_decay", "v1_pan"],
+          "params": ["v1_preset", "v1_vol", "v1_vfreq", "v1_wave", "v1_tone", "v1_attack", "v1_decay", "v1_pan"]
+        },
+        "voice2": {
+          "name": "Voix 2",
+          "knobs": ["v2_preset", "v2_vol", "v2_vfreq", "v2_wave", "v2_tone", "v2_attack", "v2_decay", "v2_pan"],
+          "params": ["v2_preset", "v2_vol", "v2_vfreq", "v2_wave", "v2_tone", "v2_attack", "v2_decay", "v2_pan"]
+        },
+        "voice3": {
+          "name": "Voix 3",
+          "knobs": ["v3_preset", "v3_vol", "v3_vfreq", "v3_wave", "v3_tone", "v3_attack", "v3_decay", "v3_pan"],
+          "params": ["v3_preset", "v3_vol", "v3_vfreq", "v3_wave", "v3_tone", "v3_attack", "v3_decay", "v3_pan"]
+        },
+        "voice4": {
+          "name": "Voix 4",
+          "knobs": ["v4_preset", "v4_vol", "v4_vfreq", "v4_wave", "v4_tone", "v4_attack", "v4_decay", "v4_pan"],
+          "params": ["v4_preset", "v4_vol", "v4_vfreq", "v4_wave", "v4_tone", "v4_attack", "v4_decay", "v4_pan"]
+        },
+        "general": {
+          "name": "General",
+          "knobs": ["master_vol", "tempo_sync", "stereo_w", "bit_crush", "drift", "jitter", "dc_filter", "out_mode"],
+          "params": ["master_vol", "tempo_sync", "stereo_w", "bit_crush", "drift", "jitter", "dc_filter", "out_mode"]
+        }
+      }
+    },
+    "chain_params": [
+      {"key": "seq1",       "name": "Seq 1",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "seq2",       "name": "Seq 2",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "seq3",       "name": "Seq 3",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "seq4",       "name": "Seq 4",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "syn1",       "name": "Syn 1",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "syn2",       "name": "Syn 2",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "syn3",       "name": "Syn 3",      "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "syn4",       "name": "Syn 4",      "type": "int",   "min": 0, "max": 25, "step": 1},
+
+      {"key": "v1_level",   "name": "V1 Level",   "type": "float", "min": 0,    "max": 1,     "step": 0.01},
+      {"key": "v2_level",   "name": "V2 Level",   "type": "float", "min": 0,    "max": 1,     "step": 0.01},
+      {"key": "v3_level",   "name": "V3 Level",   "type": "float", "min": 0,    "max": 1,     "step": 0.01},
+      {"key": "v4_level",   "name": "V4 Level",   "type": "float", "min": 0,    "max": 1,     "step": 0.01},
+      {"key": "v1_freq",    "name": "V1 Freq",    "type": "float", "min": 20,   "max": 20000, "step": 0.01},
+      {"key": "v2_freq",    "name": "V2 Freq",    "type": "float", "min": 20,   "max": 20000, "step": 0.01},
+      {"key": "v3_freq",    "name": "V3 Freq",    "type": "float", "min": 20,   "max": 20000, "step": 0.01},
+      {"key": "v4_freq",    "name": "V4 Freq",    "type": "float", "min": 20,   "max": 20000, "step": 0.01},
+
+      {"key": "root",       "name": "Root",       "type": "enum",  "options": ["Free","C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]},
+      {"key": "scale",      "name": "Scale",      "type": "enum",  "options": ["Free","Chromatic","Major","Minor","Pentatonic","WholeTone","Diminished","HarmMin"]},
+      {"key": "density",    "name": "Density",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "chaos",      "name": "Chaos",      "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "gravity",    "name": "Gravity",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "clk_div",    "name": "Clk Div",    "type": "int",   "min": 1, "max": 32, "step": 1},
+      {"key": "morse_spd",  "name": "Morse Spd",  "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "swing",      "name": "Swing",      "type": "float", "min": 0, "max": 1, "step": 0.01},
+
+      {"key": "v1_preset",  "name": "V1 Preset",  "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "v1_vol",     "name": "V1 Vol",     "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v1_vfreq",   "name": "V1 Freq",    "type": "float", "min": 20, "max": 20000, "step": 0.01},
+      {"key": "v1_wave",    "name": "V1 Wave",    "type": "enum",  "options": ["Sine","Impulse","Noise","Damped","Click","Square","Tri","FM"]},
+      {"key": "v1_tone",    "name": "V1 Tone",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v1_attack",  "name": "V1 Attack",  "type": "float", "min": 0.0001, "max": 0.05, "step": 0.0001},
+      {"key": "v1_decay",   "name": "V1 Decay",   "type": "float", "min": 0.0001, "max": 0.1,  "step": 0.0001},
+      {"key": "v1_pan",     "name": "V1 Pan",     "type": "float", "min": -1, "max": 1, "step": 0.01},
+
+      {"key": "v2_preset",  "name": "V2 Preset",  "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "v2_vol",     "name": "V2 Vol",     "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v2_vfreq",   "name": "V2 Freq",    "type": "float", "min": 20, "max": 20000, "step": 0.01},
+      {"key": "v2_wave",    "name": "V2 Wave",    "type": "enum",  "options": ["Sine","Impulse","Noise","Damped","Click","Square","Tri","FM"]},
+      {"key": "v2_tone",    "name": "V2 Tone",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v2_attack",  "name": "V2 Attack",  "type": "float", "min": 0.0001, "max": 0.05, "step": 0.0001},
+      {"key": "v2_decay",   "name": "V2 Decay",   "type": "float", "min": 0.0001, "max": 0.1,  "step": 0.0001},
+      {"key": "v2_pan",     "name": "V2 Pan",     "type": "float", "min": -1, "max": 1, "step": 0.01},
+
+      {"key": "v3_preset",  "name": "V3 Preset",  "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "v3_vol",     "name": "V3 Vol",     "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v3_vfreq",   "name": "V3 Freq",    "type": "float", "min": 20, "max": 20000, "step": 0.01},
+      {"key": "v3_wave",    "name": "V3 Wave",    "type": "enum",  "options": ["Sine","Impulse","Noise","Damped","Click","Square","Tri","FM"]},
+      {"key": "v3_tone",    "name": "V3 Tone",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v3_attack",  "name": "V3 Attack",  "type": "float", "min": 0.0001, "max": 0.05, "step": 0.0001},
+      {"key": "v3_decay",   "name": "V3 Decay",   "type": "float", "min": 0.0001, "max": 0.1,  "step": 0.0001},
+      {"key": "v3_pan",     "name": "V3 Pan",     "type": "float", "min": -1, "max": 1, "step": 0.01},
+
+      {"key": "v4_preset",  "name": "V4 Preset",  "type": "int",   "min": 0, "max": 25, "step": 1},
+      {"key": "v4_vol",     "name": "V4 Vol",     "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v4_vfreq",   "name": "V4 Freq",    "type": "float", "min": 20, "max": 20000, "step": 0.01},
+      {"key": "v4_wave",    "name": "V4 Wave",    "type": "enum",  "options": ["Sine","Impulse","Noise","Damped","Click","Square","Tri","FM"]},
+      {"key": "v4_tone",    "name": "V4 Tone",    "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "v4_attack",  "name": "V4 Attack",  "type": "float", "min": 0.0001, "max": 0.05, "step": 0.0001},
+      {"key": "v4_decay",   "name": "V4 Decay",   "type": "float", "min": 0.0001, "max": 0.1,  "step": 0.0001},
+      {"key": "v4_pan",     "name": "V4 Pan",     "type": "float", "min": -1, "max": 1, "step": 0.01},
+
+      {"key": "master_vol", "name": "Master Vol", "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "tempo_sync", "name": "Sync",       "type": "enum",  "options": ["Free","Sync"]},
+      {"key": "stereo_w",   "name": "Stereo W",   "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "bit_crush",  "name": "Bit Crush",  "type": "int",   "min": 1, "max": 16, "step": 1},
+      {"key": "drift",      "name": "Drift",      "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "jitter",     "name": "Jitter",     "type": "float", "min": 0, "max": 1, "step": 0.01},
+      {"key": "dc_filter",  "name": "DC Filt",    "type": "enum",  "options": ["Off","On"]},
+      {"key": "out_mode",   "name": "Out Mode",   "type": "enum",  "options": ["Stereo","Mono","Spread"]}
+    ]
+  }
+}
