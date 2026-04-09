@@ -23,7 +23,7 @@
 #define TWO_PI        6.283185307f
 #define NUM_VOICES    4
 #define NUM_SEQ_PRESETS 25
-#define NUM_SYN_PRESETS 25
+#define NUM_SYN_PRESETS 40
 
 /* ── Schwung API typedefs ──────────────────────────────────────────────────── */
 typedef struct {
@@ -60,9 +60,9 @@ static const char *SCALE_NAMES[] = {
 };
 
 enum { PAGE_ROOT=0, PAGE_GENERATE, PAGE_PARAMS, PAGE_MODULATION,
-       PAGE_MIX, PAGE_VOICE1, PAGE_VOICE2, PAGE_VOICE3, PAGE_VOICE4, PAGE_GENERAL };
+       PAGE_PATCH, PAGE_MIX, PAGE_VOICE1, PAGE_VOICE2, PAGE_VOICE3, PAGE_VOICE4, PAGE_GENERAL };
 static const char *PAGE_NAMES[] = {
-    "Signal","generate","params","modulation","mix",
+    "Signal","generate","params","modulation","patch","mix",
     "voice1","voice2","voice3","voice4","general"
 };
 
@@ -328,38 +328,59 @@ typedef struct {
     float fm_depth;  /* FM index */
 } synth_preset_t;
 
-/* 25 shared micro-synth presets */
+/* 40 shared micro-synth presets — all 11 waveforms covered */
 static const synth_preset_t SYN_PRESETS[NUM_SYN_PRESETS] = {
-    /* 0-4: Pure sine pips — Ikeda test tone aesthetic */
-    {WAVE_SINE,    0.0001f, 0.001f, 1.0f, 0, 0},
-    {WAVE_SINE,    0.0001f, 0.003f, 0.9f, 0, 0},
-    {WAVE_SINE,    0.0001f, 0.007f, 0.8f, 0, 0},
-    {WAVE_SINE,    0.0002f, 0.012f, 0.7f, 0, 0},
-    {WAVE_SINE,    0.0005f, 0.020f, 0.6f, 0, 0},
-    /* 5-9: Damped sinusoids — Bernier tuning fork / frequencies */
-    {WAVE_DAMPED,  0.0001f, 0.008f, 0.2f, 0, 0},
-    {WAVE_DAMPED,  0.0001f, 0.015f, 0.3f, 0, 0},
-    {WAVE_DAMPED,  0.0001f, 0.025f, 0.4f, 0, 0},
-    {WAVE_DAMPED,  0.0001f, 0.040f, 0.6f, 0, 0},
-    {WAVE_DAMPED,  0.0001f, 0.070f, 0.8f, 0, 0},
-    /* 10-14: Noise/click bursts — percussion atoms */
-    {WAVE_CLICK,   0.0001f, 0.0005f, 0.5f, 0, 0},
-    {WAVE_NOISE,   0.0001f, 0.001f,  0.3f, 0, 0},
-    {WAVE_NOISE,   0.0001f, 0.003f,  0.5f, 0, 0},
-    {WAVE_NOISE,   0.0001f, 0.006f,  0.7f, 0, 0},
-    {WAVE_IMPULSE, 0.0001f, 0.002f,  0.9f, 0, 0},
+    /* 0-4: Pure sine pips — Ikeda test tone */
+    {WAVE_SINE,    0.0001f, 0.001f,  1.0f, 0,   0},
+    {WAVE_SINE,    0.0001f, 0.003f,  0.9f, 0,   0},
+    {WAVE_SINE,    0.0001f, 0.008f,  0.8f, 0,   0},
+    {WAVE_SINE,    0.0002f, 0.020f,  0.7f, 0,   0},
+    {WAVE_SINE,    0.0005f, 0.050f,  0.6f, 0,   0},
+    /* 5-9: Damped sinusoids — Bernier tuning fork */
+    {WAVE_DAMPED,  0.0001f, 0.008f,  0.1f, 0,   0},
+    {WAVE_DAMPED,  0.0001f, 0.020f,  0.2f, 0,   0},
+    {WAVE_DAMPED,  0.0001f, 0.040f,  0.4f, 0,   0},
+    {WAVE_DAMPED,  0.0001f, 0.100f,  0.6f, 0,   0},
+    {WAVE_DAMPED,  0.0001f, 0.250f,  0.9f, 0,   0},
+    /* 10-12: Noise bursts */
+    {WAVE_NOISE,   0.0001f, 0.001f,  0.5f, 0,   0},
+    {WAVE_NOISE,   0.0001f, 0.005f,  0.4f, 0,   0},
+    {WAVE_NOISE,   0.0001f, 0.015f,  0.3f, 0,   0},
+    /* 13-14: Click / Impulse transients */
+    {WAVE_CLICK,   0.0001f, 0.0005f, 1.0f, 0,   0},
+    {WAVE_IMPULSE, 0.0001f, 0.002f,  0.9f, 0,   0},
     /* 15-19: FM micro-textures — metallic/bell */
-    {WAVE_FM, 0.0002f, 0.004f, 0.5f, 1.0f, 0.5f},
-    {WAVE_FM, 0.0002f, 0.006f, 0.6f, 1.5f, 1.0f},
-    {WAVE_FM, 0.0002f, 0.010f, 0.7f, 2.0f, 1.5f},
-    {WAVE_FM, 0.0002f, 0.018f, 0.8f, 3.0f, 2.0f},
-    {WAVE_FM, 0.0005f, 0.030f, 0.9f, 5.0f, 3.0f},
-    /* 20-24: Square/triangle digital glitches */
-    {WAVE_SQUARE, 0.0001f, 0.0005f, 0.8f, 0, 0},
-    {WAVE_SQUARE, 0.0001f, 0.001f,  0.9f, 0, 0},
-    {WAVE_TRI,    0.0001f, 0.001f,  0.6f, 0, 0},
-    {WAVE_TRI,    0.0001f, 0.003f,  0.7f, 0, 0},
-    {WAVE_TRI,    0.0002f, 0.006f,  0.8f, 0, 0}
+    {WAVE_FM, 0.0002f, 0.005f, 0.5f, 1.0f, 0.5f},
+    {WAVE_FM, 0.0002f, 0.008f, 0.6f, 1.5f, 1.2f},
+    {WAVE_FM, 0.0002f, 0.015f, 0.7f, 2.0f, 2.0f},
+    {WAVE_FM, 0.0002f, 0.025f, 0.8f, 3.0f, 3.0f},
+    {WAVE_FM, 0.0005f, 0.040f, 0.9f, 5.0f, 4.5f},
+    /* 20-22: Square / Triangle glitches */
+    {WAVE_SQUARE, 0.0001f, 0.0005f, 0.9f, 0,   0},
+    {WAVE_SQUARE, 0.0001f, 0.003f,  0.8f, 0,   0},
+    {WAVE_TRI,    0.0001f, 0.004f,  0.7f, 0,   0},
+    /* 23-25: Pink noise bursts */
+    {WAVE_PINK,   0.0001f, 0.003f,  0.8f, 0,   0},
+    {WAVE_PINK,   0.0001f, 0.010f,  0.6f, 0,   0},
+    {WAVE_PINK,   0.0002f, 0.030f,  0.4f, 0,   0},
+    /* 26-27: Brown noise — warm */
+    {WAVE_BROWN,  0.0001f, 0.006f,  0.7f, 0,   0},
+    {WAVE_BROWN,  0.0002f, 0.025f,  0.5f, 0,   0},
+    /* 28-32: AM textures — tone→AM rate 100–5000 Hz */
+    {WAVE_AM, 0.0002f, 0.006f,  0.05f, 0,  0},  /* fast AM ~350Hz */
+    {WAVE_AM, 0.0002f, 0.008f,  0.2f,  0,  0},  /* ~1k AM */
+    {WAVE_AM, 0.0002f, 0.012f,  0.4f,  0,  0},  /* ~2k AM */
+    {WAVE_AM, 0.0003f, 0.018f,  0.6f,  0,  0},  /* ~3k AM */
+    {WAVE_AM, 0.0005f, 0.030f,  0.9f,  0,  0},  /* ~4.6k AM very metallic */
+    /* 33-36: Special / long */
+    {WAVE_DAMPED,  0.0001f, 0.350f, 0.95f, 0,   0},  /* very long bell */
+    {WAVE_FM,      0.0001f, 0.003f, 0.3f, 7.0f, 6.0f}, /* extreme FM crunch */
+    {WAVE_SINE,    0.0001f, 0.100f, 1.0f, 0,   0},  /* long pure sine */
+    {WAVE_NOISE,   0.0002f, 0.080f, 0.2f, 0,   0},  /* long filtered noise */
+    /* 37-39: Ultra-short transients */
+    {WAVE_CLICK,   0.0001f, 0.0002f, 1.0f, 0,  0},  /* sharpest click */
+    {WAVE_IMPULSE, 0.0001f, 0.0003f, 1.0f, 0,  0},  /* sharpest impulse */
+    {WAVE_SQUARE,  0.0001f, 0.0004f, 1.0f, 0,  0},  /* digital spike */
 };
 
 /* ── Scale quantization ───────────────────────────────────────────────────── */
@@ -428,8 +449,12 @@ typedef struct {
     float  fm_phase;        /* FM modulator phase */
     uint32_t noise_state;
 
-    /* Tone LP filter state */
+    /* Tone LP filter state + 20ms smoothed tone coefficient */
     float  lp_state;
+    float  tone_smooth;     /* 20ms-smoothed tone for click-free LP coeff */
+
+    /* Noise LP filter state (cutoff = freq, applied to Noise/Pink/Brown) */
+    float  noise_lp;
 
     /* Heterodyne second oscillator */
     float  phase2;
@@ -510,6 +535,9 @@ typedef struct {
 
     /* Current UI page (for knob overlay) */
     int    current_page;
+
+    /* Current patch index (0-29) */
+    int    patch_idx;
 } signal_instance_t;
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -594,15 +622,19 @@ static float voice_generate(voice_t *v, float freq) {
             break;
         case WAVE_NOISE: {
             uint32_t s = v->noise_state;
-            s = s * 1664525u + 1013904223u; /* LCG */
+            s = s * 1664525u + 1013904223u;
             v->noise_state = s;
             sample = (float)(int32_t)s * (1.0f / 2147483648.0f);
+            /* Apply LP filter — freq sets cutoff */
+            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+              v->noise_lp += c * (sample - v->noise_lp);
+              sample = v->noise_lp; }
             break;
         }
         case WAVE_DAMPED:
-            /* Tuning-fork style: damping controlled by tone (0=fast, 1=slow) */
+            /* Tuning-fork: damping speed = tone (0=fast damp, 1=slow/long) */
             sample = sinf(v->phase * TWO_PI) *
-                     expf(-v->phase * (1.0f - v->tone) * 30.0f);
+                     expf(-v->phase * (1.0f - v->tone_smooth) * 30.0f);
             break;
         case WAVE_CLICK:
             sample = (v->phase < 0.005f) ?
@@ -625,7 +657,7 @@ static float voice_generate(voice_t *v, float freq) {
             break;
         }
         case WAVE_PINK: {
-            /* Paul Kellett 7-stage pink noise approximation (MIT license) */
+            /* Paul Kellett 7-stage pink noise (MIT) */
             uint32_t s = v->noise_state;
             s = s * 1664525u + 1013904223u;
             v->noise_state = s;
@@ -639,6 +671,10 @@ static float voice_generate(voice_t *v, float freq) {
             sample = (v->pink_b[0] + v->pink_b[1] + v->pink_b[2] + v->pink_b[3]
                     + v->pink_b[4] + v->pink_b[5] + v->pink_b[6] + w * 0.5362f) * 0.11f;
             v->pink_b[6] = w * 0.115926f;
+            /* Apply LP filter — freq sets cutoff */
+            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+              v->noise_lp += c * (sample - v->noise_lp);
+              sample = v->noise_lp; }
             break;
         }
         case WAVE_BROWN: {
@@ -649,11 +685,15 @@ static float voice_generate(voice_t *v, float freq) {
             float w = (float)(int32_t)s / 2147483648.0f * 0.02f;
             v->brown_last = clampf(v->brown_last + w, -1.0f, 1.0f);
             sample = v->brown_last;
+            /* Apply LP filter — freq sets cutoff */
+            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+              v->noise_lp += c * (sample - v->noise_lp);
+              sample = v->noise_lp; }
             break;
         }
         case WAVE_AM: {
-            /* Amplitude modulation: carrier sine × AM oscillator (tone→rate) */
-            float am_rate = 100.0f + v->tone * 4900.0f; /* 100–5000 Hz */
+            /* AM carrier × modulator; tone_smooth → AM rate 100–5000 Hz */
+            float am_rate = 100.0f + v->tone_smooth * 4900.0f;
             v->fm_phase += am_rate * SR_INV;
             if (v->fm_phase >= 1.0f) v->fm_phase -= 1.0f;
             float am_mod = 0.5f + 0.5f * sinf(v->fm_phase * TWO_PI); /* 0..1 */
@@ -667,6 +707,164 @@ static float voice_generate(voice_t *v, float freq) {
     v->phase += p_inc;
     if (v->phase >= 1.0f) v->phase -= 1.0f;
     return sample;
+}
+
+/* ── Patch system ─────────────────────────────────────────────────────────── */
+#define NUM_PATCHES 30
+
+typedef struct {
+    const char *name;
+    int   seq[4];         /* rhythm preset 1-25 (0=off) */
+    int   syn[4];         /* synth preset 1-40 (0=off) */
+    float freq[4];        /* Hz */
+    float pan[4];         /* -1..1 */
+    float decay[4];       /* s */
+    float sweep[4];       /* 0..1 */
+    float detune[4];      /* Hz */
+    int   sub_div[4];     /* 1..8 */
+    float density;
+    float chaos;
+    float gravity;
+    float mod_speed;
+    float mod_freq;
+    float mod_density;
+    int   mod_shape;
+} patch_def_t;
+
+static const patch_def_t PATCHES[NUM_PATCHES] = {
+/*00: Init */      {"Init",      {1,1,1,1},{1,1,1,1},{440,880,1320,2200},{-0.6f,-0.2f,0.2f,0.6f},{0.005f,0.005f,0.005f,0.005f},{0,0,0,0},{0,0,0,0},{1,1,1,1},1.0f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*01: Ikeda Grid*/ {"Ikeda Grid",{11,12,13,14},{1,2,3,1},{1000,2000,4000,500},{-0.5f,0.5f,-0.3f,0.3f},{0.002f,0.001f,0.003f,0.001f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.8f,0.1f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*02: Bernier*/    {"Bernier",   {16,17,18,19},{6,7,8,9},{330,440,528,660},{-0.4f,0.4f,-0.2f,0.2f},{0.040f,0.025f,0.060f,0.020f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.9f,0.05f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*03: Morse CQ*/   {"Morse CQ",  {1,2,3,4},{1,3,5,2},{800,1000,600,1200},{-0.3f,0.3f,-0.5f,0.5f},{0.003f,0.003f,0.003f,0.003f},{0,0,0,0},{0,0,0,0},{1,1,1,1},1.0f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*04: Mathcore*/   {"Mathcore",  {6,7,8,9},{14,14,13,13},{200,400,800,1600},{-0.7f,-0.2f,0.2f,0.7f},{0.0005f,0.0005f,0.0005f,0.0005f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.9f,0.2f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*05: Pink Rain*/  {"Pink Rain", {11,15,16,20},{23,24,25,23},{2000,3000,1500,4000},{-0.6f,0.6f,-0.4f,0.4f},{0.008f,0.005f,0.012f,0.006f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.7f,0.2f,0.0f,0.15f,0.0f,0.3f,MOD_SHAPE_SINE},
+/*06: Heterodyne*/ {"Heterodyne",{16,17,18,19},{1,1,1,1},{440,440,440,440},{-0.5f,-0.15f,0.15f,0.5f},{0.020f,0.025f,0.018f,0.022f},{0,0,0,0},{3.0f,5.0f,7.0f,11.0f},{1,1,1,1},0.8f,0.0f,0.3f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*07: SubHarmonic*/{"Sub Harm",  {11,12,15,16},{1,5,4,3},{880,660,1320,440},{-0.4f,0.4f,-0.6f,0.6f},{0.040f,0.050f,0.030f,0.045f},{0,0,0,0},{0,0,0,0},{2,3,4,5},0.8f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*08: CA Automata*/{"CA Automata",{21,22,23,24},{1,21,22,14},{500,1000,750,2000},{-0.3f,0.3f,-0.5f,0.5f},{0.004f,0.003f,0.005f,0.002f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.85f,0.15f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*09: FM Bell*/    {"FM Bell",   {13,14,16,17},{16,17,18,19},{440,880,660,1100},{-0.5f,0.5f,-0.3f,0.3f},{0.025f,0.020f,0.030f,0.015f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.7f,0.1f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*10: AM Texture*/ {"AM Texture",{11,16,20,21},{28,29,30,31},{1000,2000,500,3000},{-0.4f,0.4f,-0.7f,0.7f},{0.015f,0.012f,0.018f,0.010f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.8f,0.1f,0.0f,0.2f,0.2f,0.0f,MOD_SHAPE_TRI},
+/*11: Brown Pulse*/{"Brown Pulse",{6,8,10,12},{26,27,26,27},{200,150,300,100},{-0.3f,0.3f,-0.5f,0.5f},{0.060f,0.040f,0.080f,0.035f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.85f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*12: Click Matrix*/{"Clk Matrix",{10,11,12,13},{13,14,13,14},{1000,2000,4000,500},{-0.6f,-0.2f,0.2f,0.6f},{0.0005f,0.0005f,0.0005f,0.0005f},{0,0,0,0},{0,0,0,0},{1,1,1,1},1.0f,0.3f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*13: Sweep Casc*/ {"Sweep Casc",{16,18,17,19},{1,4,3,2},{220,330,440,660},{-0.5f,0.5f,-0.3f,0.3f},{0.040f,0.035f,0.050f,0.030f},{0.8f,0.6f,0.5f,0.4f},{0,0,0,0},{1,1,1,1},0.7f,0.05f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*14: Fibonacci*/  {"Fibonacci", {16,17,18,19},{6,7,9,8},{528,396,660,792},{-0.3f,0.3f,-0.6f,0.6f},{0.035f,0.040f,0.028f,0.045f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.9f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*15: Digi Glitch*/{"Digi Glitch",{6,9,7,8},{20,21,22,20},{440,880,220,1760},{-0.5f,0.5f,-0.8f,0.8f},{0.003f,0.002f,0.004f,0.002f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.8f,0.3f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SQUARE},
+/*16: Chirp Field*/{"Chirp Field",{11,14,21,16},{32,35,31,30},{500,1000,750,2000},{-0.4f,0.4f,-0.6f,0.6f},{0.020f,0.015f,0.025f,0.012f},{0.5f,0.7f,0.3f,0.6f},{0,0,0,0},{1,1,1,1},0.75f,0.1f,0.0f,0.15f,0.1f,0.0f,MOD_SHAPE_SINE},
+/*17: Phase Cloud*/{"Phase Cloud",{16,17,18,19},{1,2,3,4},{220,330,440,550},{-0.6f,0.6f,-0.4f,0.4f},{0.060f,0.040f,0.080f,0.045f},{0.2f,0.15f,0.25f,0.1f},{1.0f,2.0f,0.5f,3.0f},{1,1,1,1},0.8f,0.0f,0.5f,0.3f,0.4f,0.2f,MOD_SHAPE_SINE},
+/*18: Test Signal*/{"Test Signal",{11,11,11,11},{14,14,14,14},{1000,2000,4000,500},{-0.8f,-0.3f,0.3f,0.8f},{0.001f,0.001f,0.001f,0.001f},{0,0,0,0},{0,0,0,0},{1,1,1,1},1.0f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*19: CW Radio*/   {"CW Radio",  {1,2,5,3},{1,1,1,1},{700,700,700,700},{-0.5f,-0.5f,0.5f,0.5f},{0.005f,0.004f,0.006f,0.005f},{0,0,0,0},{3.0f,0.0f,5.0f,0.0f},{1,1,1,1},1.0f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*20: Cantor*/     {"Cantor",    {23,24,21,22},{1,6,4,8},{880,440,1760,220},{-0.4f,0.4f,-0.2f,0.2f},{0.008f,0.020f,0.005f,0.030f},{0,0.3f,0,0.5f},{0,0,0,0},{1,1,2,1},0.9f,0.1f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*21: Noise Gate*/ {"Noise Gate",{11,12,13,14},{10,11,14,12},{3000,5000,2000,8000},{-0.5f,0.5f,-0.3f,0.3f},{0.010f,0.005f,0.012f,0.004f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.8f,0.2f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*22: Sub Bass*/   {"Sub Bass",  {16,19,15,20},{26,27,5,6},{220,330,440,110},{0.0f,-0.2f,0.2f,0.0f},{0.100f,0.080f,0.060f,0.120f},{0,0,0,0},{0,0,0,0},{4,5,3,6},0.7f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*23: Thue-Morse*/ {"Thue-Morse",{20,20,21,21},{20,21,22,20},{440,550,660,330},{-0.3f,0.3f,-0.6f,0.6f},{0.004f,0.005f,0.003f,0.006f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.85f,0.1f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*24: Pink Grid*/  {"Pink Grid", {10,11,12,13},{23,24,25,23},{4000,6000,3000,8000},{-0.6f,-0.2f,0.2f,0.6f},{0.010f,0.008f,0.012f,0.006f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.9f,0.2f,0.0f,0.1f,0.0f,0.2f,MOD_SHAPE_SINE},
+/*25: Metallic FM*/{"Metallic FM",{6,7,8,9},{17,18,19,34},{300,600,900,1200},{-0.5f,0.5f,-0.3f,0.3f},{0.015f,0.012f,0.020f,0.010f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.75f,0.15f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*26: Minimal*/    {"Minimal",   {19,0,0,0},{5,0,0,0},{440,440,440,440},{0,0,0,0},{0.040f,0.005f,0.005f,0.005f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.8f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*27: Maximum*/    {"Maximum",   {10,11,6,7},{1,8,16,26},{220,440,880,1760},{-0.7f,-0.2f,0.2f,0.7f},{0.005f,0.010f,0.003f,0.015f},{0.3f,0.0f,0.5f,0.0f},{0,2.0f,0,5.0f},{1,1,1,2},0.9f,0.2f,0.3f,0.2f,0.3f,0.2f,MOD_SHAPE_TRI},
+/*28: Rule 30*/    {"Rule 30",   {21,22,23,24},{1,6,16,10},{660,440,880,330},{-0.4f,0.4f,-0.2f,0.2f},{0.008f,0.025f,0.005f,0.035f},{0,0.3f,0,0.5f},{0,0,0,0},{1,1,1,1},0.85f,0.05f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+/*29: Freq Lattice*/{"Freq Lat.", {11,13,15,17},{1,1,1,1},{200,400,600,800},{-0.6f,-0.2f,0.2f,0.6f},{0.010f,0.008f,0.012f,0.006f},{0,0,0,0},{0,0,0,0},{1,1,1,1},0.95f,0.0f,0.0f,0.0f,0.0f,0.0f,MOD_SHAPE_SINE},
+};
+
+static const char *PATCH_NAMES[NUM_PATCHES] = {
+    "Init","Ikeda Grid","Bernier","Morse CQ","Mathcore",
+    "Pink Rain","Heterodyne","Sub Harm","CA Automata","FM Bell",
+    "AM Texture","Brown Pulse","Clk Matrix","Sweep Casc","Fibonacci",
+    "Digi Glitch","Chirp Field","Phase Cloud","Test Signal","CW Radio",
+    "Cantor","Noise Gate","Sub Bass","Thue-Morse","Pink Grid",
+    "Metallic FM","Minimal","Maximum","Rule 30","Freq Lat."
+};
+
+static void apply_patch(signal_instance_t *inst, int idx) {
+    if (idx < 0 || idx >= NUM_PATCHES) return;
+    const patch_def_t *p = &PATCHES[idx];
+    inst->patch_idx = idx;
+    for (int v = 0; v < NUM_VOICES; v++) {
+        voice_t *vp = &inst->voices[v];
+        vp->seq_preset = p->seq[v];
+        vp->syn_preset = p->syn[v];
+        if (p->syn[v] > 0) voice_apply_synth_preset(vp, p->syn[v] - 1);
+        vp->freq    = p->freq[v];
+        vp->pan     = p->pan[v];
+        vp->decay   = p->decay[v];
+        vp->sweep   = p->sweep[v];
+        vp->detune  = p->detune[v];
+        vp->sub_div = p->sub_div[v];
+    }
+    inst->density     = p->density;
+    inst->chaos       = p->chaos;
+    inst->gravity     = p->gravity;
+    inst->mod_speed   = p->mod_speed;
+    inst->mod_freq    = p->mod_freq;
+    inst->mod_density = p->mod_density;
+    inst->mod_shape   = p->mod_shape;
+    for (int v = 0; v < NUM_VOICES; v++) inst->vlfo_shape[v] = p->mod_shape;
+}
+
+static float rand_scale_freq(signal_instance_t *inst) {
+    /* Pick a random MIDI note in musical range and quantize to current scale */
+    int midi = 36 + (int)(randf(&inst->rng) * 49.0f); /* C2–C6 ish */
+    float freq = 440.0f * powf(2.0f, (float)(midi - 69) / 12.0f);
+    return quantize_freq(freq, inst->root, inst->scale);
+}
+
+static void do_rnd_patch(signal_instance_t *inst) {
+    apply_patch(inst, (int)(randf(&inst->rng) * (float)NUM_PATCHES));
+}
+
+static void do_rnd_rytm(signal_instance_t *inst) {
+    for (int v = 0; v < NUM_VOICES; v++)
+        inst->voices[v].seq_preset = 1 + (int)(randf(&inst->rng) * (float)NUM_SEQ_PRESETS);
+}
+
+static void do_rnd_voices(signal_instance_t *inst) {
+    for (int v = 0; v < NUM_VOICES; v++) {
+        voice_t *vp = &inst->voices[v];
+        int syn = 1 + (int)(randf(&inst->rng) * (float)NUM_SYN_PRESETS);
+        vp->syn_preset = syn;
+        voice_apply_synth_preset(vp, syn - 1);
+        vp->freq  = 100.0f * powf(80.0f, randf(&inst->rng)); /* 100–8000 Hz exp */
+        vp->decay = 0.001f + randf(&inst->rng) * 0.149f;
+        vp->tone  = randf(&inst->rng);
+        vp->pan   = (randf(&inst->rng) - 0.5f) * 2.0f;
+    }
+}
+
+static void do_same_voice(signal_instance_t *inst) {
+    int syn = 1 + (int)(randf(&inst->rng) * (float)NUM_SYN_PRESETS);
+    float freq  = 100.0f * powf(80.0f, randf(&inst->rng));
+    float decay = 0.001f + randf(&inst->rng) * 0.149f;
+    float tone  = randf(&inst->rng);
+    for (int v = 0; v < NUM_VOICES; v++) {
+        voice_t *vp = &inst->voices[v];
+        vp->syn_preset = syn;
+        voice_apply_synth_preset(vp, syn - 1);
+        vp->freq  = freq;
+        vp->decay = decay;
+        vp->tone  = tone;
+        /* Small pan variation so they don't collapse completely to mono */
+        vp->pan   = clampf((randf(&inst->rng) - 0.5f) * 0.4f, -1.0f, 1.0f);
+    }
+}
+
+static void do_rnd_mod(signal_instance_t *inst) {
+    inst->mod_speed   = randf(&inst->rng) * 0.5f;
+    inst->mod_offset  = randf(&inst->rng);
+    inst->mod_freq    = randf(&inst->rng) * 0.4f;
+    inst->mod_decay   = randf(&inst->rng) * 0.3f;
+    inst->mod_pan     = randf(&inst->rng) * 0.5f;
+    inst->mod_density = randf(&inst->rng) * 0.4f;
+    int sh = (int)(randf(&inst->rng) * (float)MOD_NUM_SHAPES);
+    inst->mod_shape = sh;
+    for (int v = 0; v < NUM_VOICES; v++) inst->vlfo_shape[v] = sh;
+}
+
+static void do_rnd_pitch(signal_instance_t *inst) {
+    for (int v = 0; v < NUM_VOICES; v++)
+        inst->voices[v].freq = rand_scale_freq(inst);
+}
+
+static void do_rnd_pan(signal_instance_t *inst) {
+    for (int v = 0; v < NUM_VOICES; v++)
+        inst->voices[v].pan = (randf(&inst->rng) - 0.5f) * 2.0f;
 }
 
 /* ── Lifecycle ────────────────────────────────────────────────────────────── */
@@ -686,6 +884,7 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
     inst->bit_rate   = 0.0f;
     inst->dc_filter  = 1;
     inst->rng        = 0xDEADBEEFu;
+    inst->patch_idx  = 0;
 
     for (int v = 0; v < NUM_VOICES; v++) {
         voice_t *vp = &inst->voices[v];
@@ -697,8 +896,10 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
         vp->wave       = WAVE_SINE;
         vp->attack     = 0.0001f;
         vp->decay      = 0.005f;
-        vp->tone       = 0.5f;
-        vp->pan        = (v - 1.5f) * 0.4f; /* spread -0.6 -0.2 +0.2 +0.6 */
+        vp->tone        = 0.5f;
+        vp->tone_smooth = 0.5f;
+        vp->noise_lp    = 0.0f;
+        vp->pan         = (v - 1.5f) * 0.4f; /* spread -0.6 -0.2 +0.2 +0.6 */
         vp->noise_state = 12345u + (uint32_t)v * 111u;
         vp->env_stage  = -1; /* idle */
         vp->phase2     = 0.0f;
@@ -930,6 +1131,23 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         if (strcmp(key, k) == 0) { inst->voices[v].sub_div = (int)clampf(atof(val), 1, 8); return; }
     }
 
+    /* Patch page */
+    if (strcmp(key, "patch") == 0) {
+        for (int i = 0; i < NUM_PATCHES; i++) {
+            if (strcmp(val, PATCH_NAMES[i]) == 0) { apply_patch(inst, i); return; }
+        }
+        int iv = atoi(val);
+        if (iv >= 0 && iv < NUM_PATCHES) apply_patch(inst, iv);
+        return;
+    }
+    if (strcmp(key, "rnd_patch")  == 0) { do_rnd_patch(inst);  return; }
+    if (strcmp(key, "rnd_rytm")   == 0) { do_rnd_rytm(inst);   return; }
+    if (strcmp(key, "rnd_voices") == 0) { do_rnd_voices(inst); return; }
+    if (strcmp(key, "same_voice") == 0) { do_same_voice(inst); return; }
+    if (strcmp(key, "rnd_mod")    == 0) { do_rnd_mod(inst);    return; }
+    if (strcmp(key, "rnd_pitch")  == 0) { do_rnd_pitch(inst);  return; }
+    if (strcmp(key, "rnd_pan")    == 0) { do_rnd_pan(inst);    return; }
+
     /* Modulation page */
     if (strcmp(key, "mod_speed")   == 0) { inst->mod_speed   = clampf(atof(val), 0, 1); return; }
     if (strcmp(key, "mod_offset")  == 0) { inst->mod_offset  = clampf(atof(val), 0, 1); return; }
@@ -960,6 +1178,7 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         return;
     }
     if (strcmp(key, "mod_reset") == 0) {
+        /* Reset all LFO phases regardless of value sent */
         for (int v = 0; v < NUM_VOICES; v++) {
             inst->vlfo_phase[v]  = 0.0f;
             inst->vlfo_sh_val[v] = 0.0f;
@@ -1017,10 +1236,10 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"seq2\",\"name\":\"Seq 2\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
     "{\"key\":\"seq3\",\"name\":\"Seq 3\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
     "{\"key\":\"seq4\",\"name\":\"Seq 4\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
-    "{\"key\":\"syn1\",\"name\":\"Syn 1\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
-    "{\"key\":\"syn2\",\"name\":\"Syn 2\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
-    "{\"key\":\"syn3\",\"name\":\"Syn 3\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
-    "{\"key\":\"syn4\",\"name\":\"Syn 4\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
+    "{\"key\":\"syn1\",\"name\":\"Syn 1\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
+    "{\"key\":\"syn2\",\"name\":\"Syn 2\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
+    "{\"key\":\"syn3\",\"name\":\"Syn 3\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
+    "{\"key\":\"syn4\",\"name\":\"Syn 4\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v1_level\",\"name\":\"V1 Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v2_level\",\"name\":\"V2 Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v3_level\",\"name\":\"V3 Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
@@ -1037,7 +1256,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"clk_div\",\"name\":\"Clk Div\",\"type\":\"int\",\"min\":1,\"max\":32,\"step\":1},"
     "{\"key\":\"morse_spd\",\"name\":\"Morse Spd\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"swing\",\"name\":\"Swing\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
-    "{\"key\":\"v1_preset\",\"name\":\"V1 Preset\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
+    "{\"key\":\"v1_preset\",\"name\":\"V1 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v1_vol\",\"name\":\"V1 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v1_vfreq\",\"name\":\"V1 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
     "{\"key\":\"v1_wave\",\"name\":\"V1 Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Impulse\",\"Noise\",\"Damped\",\"Click\",\"Square\",\"Tri\",\"FM\",\"Pink\",\"Brown\",\"AM\"]},"
@@ -1048,7 +1267,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v1_sub_div\",\"name\":\"V1 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v1_sweep\",\"name\":\"V1 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v1_detune\",\"name\":\"V1 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
-    "{\"key\":\"v2_preset\",\"name\":\"V2 Preset\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
+    "{\"key\":\"v2_preset\",\"name\":\"V2 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v2_vol\",\"name\":\"V2 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v2_vfreq\",\"name\":\"V2 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
     "{\"key\":\"v2_wave\",\"name\":\"V2 Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Impulse\",\"Noise\",\"Damped\",\"Click\",\"Square\",\"Tri\",\"FM\",\"Pink\",\"Brown\",\"AM\"]},"
@@ -1059,7 +1278,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v2_sub_div\",\"name\":\"V2 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v2_sweep\",\"name\":\"V2 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v2_detune\",\"name\":\"V2 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
-    "{\"key\":\"v3_preset\",\"name\":\"V3 Preset\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
+    "{\"key\":\"v3_preset\",\"name\":\"V3 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v3_vol\",\"name\":\"V3 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v3_vfreq\",\"name\":\"V3 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
     "{\"key\":\"v3_wave\",\"name\":\"V3 Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Impulse\",\"Noise\",\"Damped\",\"Click\",\"Square\",\"Tri\",\"FM\",\"Pink\",\"Brown\",\"AM\"]},"
@@ -1070,7 +1289,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v3_sub_div\",\"name\":\"V3 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v3_sweep\",\"name\":\"V3 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v3_detune\",\"name\":\"V3 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
-    "{\"key\":\"v4_preset\",\"name\":\"V4 Preset\",\"type\":\"int\",\"min\":0,\"max\":25,\"step\":1},"
+    "{\"key\":\"v4_preset\",\"name\":\"V4 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v4_vol\",\"name\":\"V4 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v4_vfreq\",\"name\":\"V4 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
     "{\"key\":\"v4_wave\",\"name\":\"V4 Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Impulse\",\"Noise\",\"Damped\",\"Click\",\"Square\",\"Tri\",\"FM\",\"Pink\",\"Brown\",\"AM\"]},"
@@ -1081,6 +1300,14 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v4_sub_div\",\"name\":\"V4 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v4_sweep\",\"name\":\"V4 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v4_detune\",\"name\":\"V4 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
+    "{\"key\":\"patch\",\"name\":\"Patch\",\"type\":\"enum\",\"options\":[\"Init\",\"Ikeda Grid\",\"Bernier\",\"Morse CQ\",\"Mathcore\",\"Pink Rain\",\"Heterodyne\",\"Sub Harm\",\"CA Automata\",\"FM Bell\",\"AM Texture\",\"Brown Pulse\",\"Clk Matrix\",\"Sweep Casc\",\"Fibonacci\",\"Digi Glitch\",\"Chirp Field\",\"Phase Cloud\",\"Test Signal\",\"CW Radio\",\"Cantor\",\"Noise Gate\",\"Sub Bass\",\"Thue-Morse\",\"Pink Grid\",\"Metallic FM\",\"Minimal\",\"Maximum\",\"Rule 30\",\"Freq Lat.\"]},"
+    "{\"key\":\"rnd_patch\",\"name\":\"Rnd Patch\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_rytm\",\"name\":\"Rnd Rytm\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_voices\",\"name\":\"Rnd Voices\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"same_voice\",\"name\":\"Same Voice\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_mod\",\"name\":\"Rnd Mod\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_pitch\",\"name\":\"Rnd Pitch\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
+    "{\"key\":\"rnd_pan\",\"name\":\"Rnd Pan\",\"type\":\"enum\",\"options\":[\"Trigger\"]},"
     "{\"key\":\"mod_speed\",\"name\":\"Mod Speed\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_offset\",\"name\":\"Mod Offset\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"mod_freq\",\"name\":\"Freq Mod\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
@@ -1101,7 +1328,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"out_mode\",\"name\":\"Out Mode\",\"type\":\"enum\",\"options\":[\"Stereo\",\"Mono\",\"Spread\"]}]";
 
 /* ── Knob page maps ───────────────────────────────────────────────────────── */
-static const char *KNOB_KEYS[10][8] = {
+static const char *KNOB_KEYS[11][8] = {
     /* PAGE_ROOT — mirrors generate for chain_edit hover */
     {"seq1","seq2","seq3","seq4","syn1","syn2","syn3","syn4"},
     /* PAGE_GENERATE */
@@ -1110,16 +1337,18 @@ static const char *KNOB_KEYS[10][8] = {
     {"root","scale","density","chaos","gravity","clk_div","morse_spd","swing"},
     /* PAGE_MODULATION */
     {"mod_speed","mod_offset","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset"},
+    /* PAGE_PATCH */
+    {"patch","rnd_patch","rnd_rytm","rnd_voices","same_voice","rnd_mod","rnd_pitch","rnd_pan"},
     /* PAGE_MIX */
     {"v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"},
-    /* PAGE_VOICE1 */
-    {"v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_attack","v1_decay","v1_pan"},
+    /* PAGE_VOICE1: Preset,Vol,Freq,Wave,Tone,Decay,Detune,Pan — Attack menu-only */
+    {"v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan"},
     /* PAGE_VOICE2 */
-    {"v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_attack","v2_decay","v2_pan"},
+    {"v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan"},
     /* PAGE_VOICE3 */
-    {"v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_attack","v3_decay","v3_pan"},
+    {"v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan"},
     /* PAGE_VOICE4 */
-    {"v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_attack","v4_decay","v4_pan"},
+    {"v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan"},
     /* PAGE_GENERAL */
     {"master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter"}
 };
@@ -1144,6 +1373,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "{\"level\":\"generate\",\"label\":\"Generate\"},"
             "{\"level\":\"params\",\"label\":\"Params\"},"
             "{\"level\":\"modulation\",\"label\":\"Modulation\"},"
+            "{\"level\":\"patch\",\"label\":\"Patch\"},"
             "{\"level\":\"mix\",\"label\":\"Mix\"},"
             "{\"level\":\"voice1\",\"label\":\"Voice 1\"},"
             "{\"level\":\"voice2\",\"label\":\"Voice 2\"},"
@@ -1160,25 +1390,28 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "\"modulation\":{\"name\":\"Modulation\","
             "\"knobs\":[\"mod_speed\",\"mod_offset\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\"],"
             "\"params\":[\"mod_speed\",\"mod_offset\",\"mod_freq\",\"mod_decay\",\"mod_pan\",\"mod_density\",\"mod_shape\",\"mod_reset\"]},"
+            "\"patch\":{\"name\":\"Patch\","
+            "\"knobs\":[\"patch\",\"rnd_patch\",\"rnd_rytm\",\"rnd_voices\",\"same_voice\",\"rnd_mod\",\"rnd_pitch\",\"rnd_pan\"],"
+            "\"params\":[\"patch\",\"rnd_patch\",\"rnd_rytm\",\"rnd_voices\",\"same_voice\",\"rnd_mod\",\"rnd_pitch\",\"rnd_pan\"]},"
             "\"mix\":{\"name\":\"Mix\","
             "\"knobs\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"],"
             "\"params\":[\"v1_level\",\"v2_level\",\"v3_level\",\"v4_level\",\"v1_freq\",\"v2_freq\",\"v3_freq\",\"v4_freq\"]},"
             "\"voice1\":{\"name\":\"Voice 1\","
-            "\"knobs\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_attack\",\"v1_decay\",\"v1_pan\"],"
-            "\"params\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_attack\",\"v1_decay\",\"v1_pan\","
-            "\"v1_sub_div\",\"v1_sweep\",\"v1_detune\"]},"
+            "\"knobs\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_decay\",\"v1_detune\",\"v1_pan\"],"
+            "\"params\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_decay\",\"v1_detune\",\"v1_pan\","
+            "\"v1_attack\",\"v1_sub_div\",\"v1_sweep\"]},"
             "\"voice2\":{\"name\":\"Voice 2\","
-            "\"knobs\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_attack\",\"v2_decay\",\"v2_pan\"],"
-            "\"params\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_attack\",\"v2_decay\",\"v2_pan\","
-            "\"v2_sub_div\",\"v2_sweep\",\"v2_detune\"]},"
+            "\"knobs\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_decay\",\"v2_detune\",\"v2_pan\"],"
+            "\"params\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_decay\",\"v2_detune\",\"v2_pan\","
+            "\"v2_attack\",\"v2_sub_div\",\"v2_sweep\"]},"
             "\"voice3\":{\"name\":\"Voice 3\","
-            "\"knobs\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_attack\",\"v3_decay\",\"v3_pan\"],"
-            "\"params\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_attack\",\"v3_decay\",\"v3_pan\","
-            "\"v3_sub_div\",\"v3_sweep\",\"v3_detune\"]},"
+            "\"knobs\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_decay\",\"v3_detune\",\"v3_pan\"],"
+            "\"params\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_decay\",\"v3_detune\",\"v3_pan\","
+            "\"v3_attack\",\"v3_sub_div\",\"v3_sweep\"]},"
             "\"voice4\":{\"name\":\"Voice 4\","
-            "\"knobs\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\"],"
-            "\"params\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_attack\",\"v4_decay\",\"v4_pan\","
-            "\"v4_sub_div\",\"v4_sweep\",\"v4_detune\"]},"
+            "\"knobs\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_decay\",\"v4_detune\",\"v4_pan\"],"
+            "\"params\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_decay\",\"v4_detune\",\"v4_pan\","
+            "\"v4_attack\",\"v4_sub_div\",\"v4_sweep\"]},"
             "\"general\":{\"name\":\"General\","
             "\"knobs\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\"],"
             "\"params\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"]}"
@@ -1190,7 +1423,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         int kn = atoi(key + 5) - 1; /* 0-based */
         if (kn < 0 || kn > 7) return -1;
         int pg = inst->current_page;
-        if (pg < 0 || pg > 9) pg = 0;
+        if (pg < 0 || pg > 10) pg = 0;
         const char *kkey = KNOB_KEYS[pg][kn];
         if (strstr(key, "_name"))
             return snprintf(buf, buf_len, "%s", kkey);
@@ -1253,6 +1486,16 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         snprintf(k, sizeof(k), "v%d_sub_div", v + 1);
         if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%d", vp->sub_div);
     }
+
+    /* Patch page */
+    if (strcmp(key, "patch")      == 0) return snprintf(buf, buf_len, "%s", PATCH_NAMES[inst->patch_idx]);
+    if (strcmp(key, "rnd_patch")  == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_rytm")   == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_voices") == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "same_voice") == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_mod")    == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_pitch")  == 0) return snprintf(buf, buf_len, "Trigger");
+    if (strcmp(key, "rnd_pan")    == 0) return snprintf(buf, buf_len, "Trigger");
 
     /* Modulation */
     if (strcmp(key, "mod_speed")   == 0) return snprintf(buf, buf_len, "%.4f", inst->mod_speed);
@@ -1452,8 +1695,9 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
                 sample = (sample + s2) * 0.5f;
             }
 
-            /* ── Tone LP filter ── */
-            float lp_coeff = vp->tone * 0.999f + 0.001f;
+            /* ── Tone LP filter (20ms smoothed coefficient) ── */
+            vp->tone_smooth += 0.00113f * (vp->tone - vp->tone_smooth); /* ~20ms */
+            float lp_coeff = vp->tone_smooth * 0.999f + 0.001f;
             vp->lp_state += lp_coeff * (sample - vp->lp_state) + 1e-20f;
             sample = vp->lp_state;
 
