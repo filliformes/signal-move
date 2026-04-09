@@ -828,20 +828,7 @@ static inline int rnd_int(uint32_t *rng, int count) {
     return v;
 }
 
-static void do_rnd_patch(signal_instance_t *inst) {
-    /* Fully random — randomize everything independently */
-    do_rnd_rytm(inst);
-    do_rnd_voices(inst);
-    do_rnd_mod(inst);
-    do_rnd_pan(inst);
-    /* Random global params */
-    inst->density = 0.5f + randf(&inst->rng) * 0.5f;
-    inst->chaos   = randf(&inst->rng) * 0.35f;
-    inst->swing   = randf(&inst->rng) * 0.4f;
-    inst->gravity = randf(&inst->rng) * 0.3f;
-    inst->all_decay = randf(&inst->rng) * 0.5f;
-}
-
+/* All helpers defined before do_rnd_patch which calls them */
 static void do_rnd_rytm(signal_instance_t *inst) {
     for (int v = 0; v < NUM_VOICES; v++)
         inst->voices[v].seq_preset = 1 + rnd_int(&inst->rng, NUM_SEQ_PRESETS);
@@ -853,7 +840,7 @@ static void do_rnd_voices(signal_instance_t *inst) {
         int syn = 1 + rnd_int(&inst->rng, NUM_SYN_PRESETS);
         vp->syn_preset = syn;
         voice_apply_synth_preset(vp, syn - 1);
-        vp->freq  = 100.0f * powf(80.0f, randf(&inst->rng)); /* 100–8000 Hz exp */
+        vp->freq  = 100.0f * powf(80.0f, randf(&inst->rng));
         vp->decay = 0.001f + randf(&inst->rng) * 0.149f;
         vp->tone  = randf(&inst->rng);
         vp->pan   = clampf((randf(&inst->rng) - 0.5f) * 2.0f, -1.0f, 1.0f);
@@ -883,7 +870,7 @@ static void do_rnd_mod(signal_instance_t *inst) {
     inst->mod_decay   = randf(&inst->rng) * 0.3f;
     inst->mod_pan     = randf(&inst->rng) * 0.5f;
     inst->mod_density = randf(&inst->rng) * 0.4f;
-    int sh = rnd_int(&inst->rng, MOD_NUM_SHAPES); /* bounded — was OOB causing NaN */
+    int sh = rnd_int(&inst->rng, MOD_NUM_SHAPES);
     inst->mod_shape = sh;
     for (int v = 0; v < NUM_VOICES; v++) inst->vlfo_shape[v] = sh;
 }
@@ -896,6 +883,19 @@ static void do_rnd_pitch(signal_instance_t *inst) {
 static void do_rnd_pan(signal_instance_t *inst) {
     for (int v = 0; v < NUM_VOICES; v++)
         inst->voices[v].pan = clampf((randf(&inst->rng) - 0.5f) * 2.0f, -1.0f, 1.0f);
+}
+
+/* do_rnd_patch last — calls all helpers above */
+static void do_rnd_patch(signal_instance_t *inst) {
+    do_rnd_rytm(inst);
+    do_rnd_voices(inst);
+    do_rnd_mod(inst);
+    do_rnd_pan(inst);
+    inst->density   = 0.5f + randf(&inst->rng) * 0.5f;
+    inst->chaos     = randf(&inst->rng) * 0.35f;
+    inst->swing     = randf(&inst->rng) * 0.4f;
+    inst->gravity   = randf(&inst->rng) * 0.3f;
+    inst->all_decay = randf(&inst->rng) * 0.5f;
 }
 
 /* ── Lifecycle ────────────────────────────────────────────────────────────── */

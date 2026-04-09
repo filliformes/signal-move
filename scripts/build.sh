@@ -24,6 +24,13 @@ CONTAINER_ID=$(MSYS_NO_PATHCONV=1 docker create schwung-builder \
 # Copy entire src dir into container
 docker cp "$WIN_ROOT/src" "$CONTAINER_ID:/build/src"
 docker start -a "$CONTAINER_ID"
+# Explicit exit code check — Git Bash on Windows doesn't propagate set -e through docker start
+EXIT_CODE=$(docker inspect "$CONTAINER_ID" --format='{{.State.ExitCode}}')
+if [ "$EXIT_CODE" != "0" ]; then
+    echo "ERROR: Compile failed (exit $EXIT_CODE). Check output above."
+    docker rm "$CONTAINER_ID" > /dev/null
+    exit 1
+fi
 
 # Extract artifacts
 docker cp "$CONTAINER_ID:/build/dist/$MODULE_ID/dsp.so" "$WIN_ROOT/dist/$MODULE_ID/"
