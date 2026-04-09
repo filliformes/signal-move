@@ -27,7 +27,8 @@ docker start -a "$CONTAINER_ID"
 
 # Extract artifacts
 docker cp "$CONTAINER_ID:/build/dist/$MODULE_ID/dsp.so" "$WIN_ROOT/dist/$MODULE_ID/"
-cp "$ROOT/src/module.json" "$ROOT/dist/$MODULE_ID/"
+# Always copy from src (not from inside Docker) so latest edits are captured
+cp -f "$ROOT/src/module.json" "$ROOT/dist/$MODULE_ID/module.json"
 docker cp "$CONTAINER_ID:/build/dist/$MODULE_ID-module.tar.gz" "$WIN_ROOT/dist/"
 docker rm "$CONTAINER_ID" > /dev/null
 
