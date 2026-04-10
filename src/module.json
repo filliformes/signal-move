@@ -42,10 +42,10 @@
           "params": ["mod_amount","mod_speed","mod_freq","mod_decay","mod_pan","mod_density","mod_shape","mod_reset","mod_offset"]
         },
         "mix":        {"name":"Mix",        "knobs":["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"], "params":["v1_level","v2_level","v3_level","v4_level","v1_freq","v2_freq","v3_freq","v4_freq"]},
-        "voice1": {"name":"Voice 1","knobs":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan"],"params":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan","v1_attack","v1_sub_div","v1_sweep"]},
-        "voice2": {"name":"Voice 2","knobs":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan"],"params":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan","v2_attack","v2_sub_div","v2_sweep"]},
-        "voice3": {"name":"Voice 3","knobs":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan"],"params":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan","v3_attack","v3_sub_div","v3_sweep"]},
-        "voice4": {"name":"Voice 4","knobs":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan"],"params":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan","v4_attack","v4_sub_div","v4_sweep"]},
+        "voice1": {"name":"Voice 1","knobs":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan"],"params":["v1_preset","v1_vol","v1_vfreq","v1_wave","v1_tone","v1_decay","v1_detune","v1_pan","v1_attack","v1_sub_div","v1_sweep","v1_tone_rnd"]},
+        "voice2": {"name":"Voice 2","knobs":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan"],"params":["v2_preset","v2_vol","v2_vfreq","v2_wave","v2_tone","v2_decay","v2_detune","v2_pan","v2_attack","v2_sub_div","v2_sweep","v2_tone_rnd"]},
+        "voice3": {"name":"Voice 3","knobs":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan"],"params":["v3_preset","v3_vol","v3_vfreq","v3_wave","v3_tone","v3_decay","v3_detune","v3_pan","v3_attack","v3_sub_div","v3_sweep","v3_tone_rnd"]},
+        "voice4": {"name":"Voice 4","knobs":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan"],"params":["v4_preset","v4_vol","v4_vfreq","v4_wave","v4_tone","v4_decay","v4_detune","v4_pan","v4_attack","v4_sub_div","v4_sweep","v4_tone_rnd"]},
         "general": {"name":"General","knobs":["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter"],"params":["master_vol","tempo_sync","bpm","bit_crush","bit_rate","stereo_w","drift","jitter","dc_filter","out_mode"]}
       }
     },
@@ -108,6 +108,7 @@
       {"key":"v1_attack","name":"V1 Attack","type":"float","min":0.0001,"max":0.05,"step":0.0001},
       {"key":"v1_sub_div","name":"V1 Sub Div","type":"int","min":1,"max":8,"step":1},
       {"key":"v1_sweep","name":"V1 Sweep","type":"float","min":0,"max":1,"step":0.01},
+      {"key":"v1_tone_rnd","name":"V1 Tone Rnd","type":"float","min":0,"max":1,"step":0.01},
 
       {"key":"v2_preset","name":"V2 Preset","type":"int","min":0,"max":40,"step":1},
       {"key":"v2_vol","name":"V2 Vol","type":"float","min":0,"max":1,"step":0.01},
@@ -120,6 +121,7 @@
       {"key":"v2_attack","name":"V2 Attack","type":"float","min":0.0001,"max":0.05,"step":0.0001},
       {"key":"v2_sub_div","name":"V2 Sub Div","type":"int","min":1,"max":8,"step":1},
       {"key":"v2_sweep","name":"V2 Sweep","type":"float","min":0,"max":1,"step":0.01},
+      {"key":"v2_tone_rnd","name":"V2 Tone Rnd","type":"float","min":0,"max":1,"step":0.01},
 
       {"key":"v3_preset","name":"V3 Preset","type":"int","min":0,"max":40,"step":1},
       {"key":"v3_vol","name":"V3 Vol","type":"float","min":0,"max":1,"step":0.01},
@@ -132,6 +134,7 @@
       {"key":"v3_attack","name":"V3 Attack","type":"float","min":0.0001,"max":0.05,"step":0.0001},
       {"key":"v3_sub_div","name":"V3 Sub Div","type":"int","min":1,"max":8,"step":1},
       {"key":"v3_sweep","name":"V3 Sweep","type":"float","min":0,"max":1,"step":0.01},
+      {"key":"v3_tone_rnd","name":"V3 Tone Rnd","type":"float","min":0,"max":1,"step":0.01},
 
       {"key":"v4_preset","name":"V4 Preset","type":"int","min":0,"max":40,"step":1},
       {"key":"v4_vol","name":"V4 Vol","type":"float","min":0,"max":1,"step":0.01},
@@ -144,6 +147,7 @@
       {"key":"v4_attack","name":"V4 Attack","type":"float","min":0.0001,"max":0.05,"step":0.0001},
       {"key":"v4_sub_div","name":"V4 Sub Div","type":"int","min":1,"max":8,"step":1},
       {"key":"v4_sweep","name":"V4 Sweep","type":"float","min":0,"max":1,"step":0.01},
+      {"key":"v4_tone_rnd","name":"V4 Tone Rnd","type":"float","min":0,"max":1,"step":0.01},
 
       {"key":"master_vol","name":"Volume","type":"float","min":0,"max":1,"step":0.01},
       {"key":"tempo_sync","name":"Sync","type":"enum","options":["Free","Sync"]},

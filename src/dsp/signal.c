@@ -40,10 +40,10 @@ typedef struct {
 /* ── Enumerations ─────────────────────────────────────────────────────────── */
 enum { WAVE_SINE=0, WAVE_IMPULSE, WAVE_NOISE, WAVE_DAMPED,
        WAVE_CLICK, WAVE_SQUARE, WAVE_TRI, WAVE_FM,
-       WAVE_PINK, WAVE_BROWN, WAVE_AM, WAVE_PING, WAVE_COUNT };
+       WAVE_PINK, WAVE_BROWN, WAVE_AM, WAVE_PING, WAVE_TRAIN, WAVE_COUNT };
 static const char *WAVE_NAMES[] = {
     "Sine","Impulse","Noise","Damped","Click","Square","Tri","FM",
-    "Pink","Brown","AM","Ping"
+    "Pink","Brown","AM","Ping","Train"
 };
 
 enum { ROOT_FREE=0, ROOT_C, ROOT_CS, ROOT_D, ROOT_DS, ROOT_E,
@@ -455,7 +455,15 @@ typedef struct {
     float  tone_smooth;     /* 20ms-smoothed tone for click-free LP coeff */
     float  vel;             /* pad velocity scale 0–1 (1.0 for sequencer hits) */
     int    hit_sub_div;     /* row-based sub_div override for this hit (0 = use vp->sub_div) */
-    float  damp_t;          /* time accumulator for WAVE_DAMPED and WAVE_PING (samples) */
+    float  damp_t;          /* time accumulator for WAVE_DAMPED, WAVE_PING, WAVE_TRAIN */
+
+    /* Artist-inspired features */
+    float  tone_rnd;        /* per-event tone randomization depth (Bretschneider) */
+    float  tone_eff;        /* effective tone for current trigger (base + rnd offset) */
+    float  sat;             /* sub-threshold saturation 0–1 (Emptyset harmonic onset) */
+    float  res;             /* noise resonance 0–1: LP→BP filter (Alva Noto narrow-band) */
+    float  noise_bp;        /* SVF bandpass state for resonant noise filter */
+    int    sparsity_lockout; /* steps locked after trigger (Deupree sparsity gate) */
 
     /* Noise LP filter state (cutoff = freq, applied to Noise/Pink/Brown) */
     float  noise_lp;
@@ -538,6 +546,9 @@ typedef struct {
 
     /* PRNG for density/chaos/jitter */
     uint32_t rng;
+
+    /* Sparsity gate: minimum step gap between triggers (Deupree) */
+    float  sparsity;
 
     /* Current UI page (for knob overlay) */
     int    current_page;
@@ -627,6 +638,8 @@ static void voice_trigger(voice_t *v) {
     v->vel         = 1.0f;
     v->hit_sub_div = 0;
     v->damp_t      = 0.0f;
+    v->tone_eff    = v->tone; /* reset to base (caller applies tone_rnd after if needed) */
+    v->noise_bp    = 0.0f;   /* reset BP state on new hit for clean attack */
     /* brown_last kept — avoids click from hard reset */
 }
 
@@ -652,10 +665,19 @@ static float voice_generate(voice_t *v, float freq) {
             s = s * 1664525u + 1013904223u;
             v->noise_state = s;
             sample = (float)(int32_t)s * (1.0f / 2147483648.0f);
-            /* Apply LP filter — freq sets cutoff */
-            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
-              v->noise_lp += c * (sample - v->noise_lp);
-              sample = v->noise_lp; }
+            if (v->res > 0.0f) {
+                /* Chamberlin SVF bandpass — Alva Noto narrow-band noise */
+                float f = 2.0f * sinf(3.14159265f * freq * SR_INV);
+                float q = 1.0f - v->res * 0.97f;
+                float hp = sample - v->noise_lp - q * v->noise_bp;
+                v->noise_bp += f * hp;
+                v->noise_lp += f * v->noise_bp;
+                sample = v->noise_bp * (1.5f + v->res);
+            } else {
+                float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+                v->noise_lp += c * (sample - v->noise_lp);
+                sample = v->noise_lp;
+            }
             break;
         }
         case WAVE_DAMPED: {
@@ -722,10 +744,18 @@ static float voice_generate(voice_t *v, float freq) {
             sample = (v->pink_b[0] + v->pink_b[1] + v->pink_b[2] + v->pink_b[3]
                     + v->pink_b[4] + v->pink_b[5] + v->pink_b[6] + w * 0.5362f) * 0.11f;
             v->pink_b[6] = w * 0.115926f;
-            /* Apply LP filter — freq sets cutoff */
-            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
-              v->noise_lp += c * (sample - v->noise_lp);
-              sample = v->noise_lp; }
+            if (v->res > 0.0f) {
+                float f = 2.0f * sinf(3.14159265f * freq * SR_INV);
+                float q = 1.0f - v->res * 0.97f;
+                float hp = sample - v->noise_lp - q * v->noise_bp;
+                v->noise_bp += f * hp;
+                v->noise_lp += f * v->noise_bp;
+                sample = v->noise_bp * (1.5f + v->res);
+            } else {
+                float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+                v->noise_lp += c * (sample - v->noise_lp);
+                sample = v->noise_lp;
+            }
             break;
         }
         case WAVE_BROWN: {
@@ -736,10 +766,18 @@ static float voice_generate(voice_t *v, float freq) {
             float w = (float)(int32_t)s / 2147483648.0f * 0.02f;
             v->brown_last = clampf(v->brown_last + w, -1.0f, 1.0f);
             sample = v->brown_last;
-            /* Apply LP filter — freq sets cutoff */
-            { float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
-              v->noise_lp += c * (sample - v->noise_lp);
-              sample = v->noise_lp; }
+            if (v->res > 0.0f) {
+                float f = 2.0f * sinf(3.14159265f * freq * SR_INV);
+                float q = 1.0f - v->res * 0.97f;
+                float hp = sample - v->noise_lp - q * v->noise_bp;
+                v->noise_bp += f * hp;
+                v->noise_lp += f * v->noise_bp;
+                sample = v->noise_bp * (1.5f + v->res);
+            } else {
+                float c = 1.0f - expf(-TWO_PI * freq * SR_INV);
+                v->noise_lp += c * (sample - v->noise_lp);
+                sample = v->noise_lp;
+            }
             break;
         }
         case WAVE_AM: {
@@ -749,6 +787,19 @@ static float voice_generate(voice_t *v, float freq) {
             if (v->fm_phase >= 1.0f) v->fm_phase -= 1.0f;
             float am_mod = 0.5f + 0.5f * sinf(v->fm_phase * TWO_PI); /* 0..1 */
             sample = sinf(v->phase * TWO_PI) * am_mod;
+            break;
+        }
+        case WAVE_TRAIN: {
+            /* Click-train-to-tone continuum (Messier sewing machine / Bretschneider).
+             * At low freq (0.5-10 Hz): audible as spaced rhythmic transients.
+             * At mid freq (40-80 Hz): sub-bass buzz.
+             * At high freq (200-2000 Hz): pitched tone with chosen character.
+             * tone=0 → very short pip (0.5ms), tone=1 → long pip (30ms).
+             * Works through the voice sequencer OR as continuous self-oscillator. */
+            if (v->phase < p_inc) v->damp_t = 0.0f; /* new cycle = new pip */
+            float tau = 0.0005f + v->tone_smooth * 0.029f;
+            sample = sinf(v->phase * TWO_PI) * expf(-v->damp_t * SR_INV / tau);
+            v->damp_t += 1.0f;
             break;
         }
         default:
@@ -991,7 +1042,13 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
         vp->tone        = 0.5f;
         vp->tone_smooth = 0.5f;
         vp->noise_lp    = 0.0f;
-        vp->damp_t      = 0.0f;
+        vp->damp_t           = 0.0f;
+        vp->tone_rnd         = 0.0f;
+        vp->tone_eff         = vp->tone;
+        vp->sat              = 0.0f;
+        vp->res              = 0.0f;
+        vp->noise_bp         = 0.0f;
+        vp->sparsity_lockout = 0;
         vp->vel         = 1.0f;
         vp->pan         = (v - 1.5f) * 0.4f; /* spread -0.6 -0.2 +0.2 +0.6 */
         vp->noise_state = 12345u + (uint32_t)v * 111u;
@@ -1005,7 +1062,8 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
     }
 
     /* Modulation LFO defaults */
-    inst->all_decay   = 0.0f; /* no extension by default */
+    inst->all_decay   = 0.0f;
+    inst->sparsity    = 0.0f;
     inst->mod_amount  = 1.0f;
     inst->mod_speed   = 0.0f;
     inst->mod_offset  = 0.0f;
@@ -1117,6 +1175,9 @@ static void on_midi(void *instance, const uint8_t *msg, int len, int source) {
         int vi  = (int)msg[1] % NUM_VOICES;
         int row = ((int)msg[1] / 4) % 4;
         voice_trigger_pad(&inst->voices[vi], (float)msg[2] / 127.0f, ROW_SUBDIV[row]);
+        /* Per-pad tone randomization */
+        if (inst->voices[vi].tone_rnd > 0.0f)
+            inst->voices[vi].tone_eff = clampf(inst->voices[vi].tone + (randf(&inst->rng) - 0.5f) * 2.0f * inst->voices[vi].tone_rnd, 0.0f, 1.0f);
         return;
     }
     if (ch_status == 0x80 || (ch_status == 0x90 && msg[2] == 0)) {
@@ -1238,6 +1299,8 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         if (strcmp(key, k) == 0) { inst->voices[v].detune  = clampf(atof(val), 0, 20); return; }
         snprintf(k, sizeof(k), "v%d_sub_div", v + 1);
         if (strcmp(key, k) == 0) { inst->voices[v].sub_div = (int)clampf(atof(val), 1, 8); return; }
+        snprintf(k, sizeof(k), "v%d_tone_rnd", v + 1);
+        if (strcmp(key, k) == 0) { inst->voices[v].tone_rnd = clampf(atof(val), 0, 1); return; }
     }
 
     /* Patch page */
@@ -1742,11 +1805,13 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
                     vp->step_accum -= (sps + swing_off);
                     vp->step = (vp->step + 1) % pat->length;
 
-                    if (pat->hits[vp->step]) {
-                        /* Density with optional LFO modulation */
+                    /* Sparsity gate: decrement lockout every step (Deupree breathing) */
+                    if (vp->sparsity_lockout > 0) vp->sparsity_lockout--;
+
+                    if (pat->hits[vp->step] && vp->sparsity_lockout == 0) {
                         float prob = inst->density;
                         if (inst->mod_density > 0.0f) {
-                            float lnorm = (lfo_v + 1.0f) * 0.5f; /* 0..1 */
+                            float lnorm = (lfo_v + 1.0f) * 0.5f;
                             prob *= (1.0f - inst->mod_density + inst->mod_density * lnorm);
                         }
                         if (inst->chaos > 0.0f)
@@ -1761,6 +1826,12 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
                             if (inst->jitter > 0.0f)
                                 vp->step_accum += (randf(&inst->rng) - 0.5f) * sps * inst->jitter * 0.5f;
                             voice_trigger(vp);
+                            /* Per-event tone randomization (Bretschneider spectral scatter) */
+                            if (vp->tone_rnd > 0.0f)
+                                vp->tone_eff = clampf(vp->tone + (randf(&inst->rng) - 0.5f) * 2.0f * vp->tone_rnd, 0.0f, 1.0f);
+                            /* Set sparsity lockout for next events */
+                            if (inst->sparsity > 0.0f)
+                                vp->sparsity_lockout = 1 + (int)(inst->sparsity * 31.0f); /* 1-32 steps */
                         }
                     }
                 }
@@ -1824,11 +1895,17 @@ static void render_block(void *instance, int16_t *out_lr, int frames) {
                 sample = (sample + s2) * 0.5f;
             }
 
-            /* ── Tone LP filter (20ms smoothed coefficient) ── */
-            vp->tone_smooth += 0.0226f * (vp->tone - vp->tone_smooth); /* ~1ms — crisp transients */
+            /* ── Tone LP filter: smooth toward tone_eff (includes per-event randomization) ── */
+            vp->tone_smooth += 0.0226f * (vp->tone_eff - vp->tone_smooth);
             float lp_coeff = vp->tone_smooth * 0.999f + 0.001f;
             vp->lp_state += lp_coeff * (sample - vp->lp_state) + 1e-20f;
             sample = vp->lp_state;
+
+            /* ── Sub-threshold saturation (Emptyset harmonic onset) ── */
+            if (vp->sat > 0.0f) {
+                float k = 1.0f + vp->sat * 5.0f;
+                sample = tanhf(sample * k) / k;
+            }
 
             /* ── Apply envelope + volume + pad velocity ── */
             sample *= vp->env * vp->vol * vp->level * vp->vel;

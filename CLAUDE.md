@@ -51,16 +51,23 @@ Micro-synth presets shape ultra-short oscillator bursts (0.1ms–100ms).
 | 8 | swing | 0-1 | Timing swing on even steps |
 
 ### Pages 4-7 — Voix 1-4 (per-voice detail)
+**Knobs (direct):**
 | Knob | Param | Range | Description |
 |------|-------|-------|-------------|
-| 1 | vN_preset | 0-25 | Synth preset (mirrors page 1 synN) |
+| 1 | vN_preset | 0-40 | Synth preset (mirrors page 1 synN) |
 | 2 | vN_vol | 0-1 | Voice volume |
 | 3 | vN_vfreq | 20-20000 Hz | Voice frequency |
-| 4 | vN_wave | Sine/Impulse/Noise/Damped/Click/Square/Tri/FM | Waveform |
+| 4 | vN_wave | Sine/Impulse/Noise/Damped/Click/Square/Tri/FM/Pink/Brown/AM/Ping | Waveform |
 | 5 | vN_tone | 0-1 | Brightness/tone color |
-| 6 | vN_attack | 0.0001-0.05s | Click sharpness |
-| 7 | vN_decay | 0.0001-0.1s | Microsound decay time |
+| 6 | vN_decay | 0.0001-0.5s | Microsound decay time |
+| 7 | vN_detune | 0-20 Hz | Heterodyne frequency offset (beat frequency) |
 | 8 | vN_pan | -1 to +1 | Stereo position |
+
+**Menu (jog-wheel accessible):**
+- **vN_attack** (0.0001-0.05s): Envelope attack / click sharpness
+- **vN_sub_div** (1-8): Sub-harmonic divider per voice (affects pad velocity-based octave override)
+- **vN_sweep** (0-1): Pitch envelope arc — peaks 2^sweep octaves up at attack
+- **vN_tone_rnd** (0-1, Bretschneider): Per-impulse tone randomization depth. Each rhythm hit gets random tone offset ±100% × vN_tone_rnd. Creates spectral variation within patterns.
 
 ### Page 8 — General
 | Knob | Param | Range | Description |
@@ -81,12 +88,35 @@ Micro-synth presets shape ultra-short oscillator bursts (0.1ms–100ms).
 - 16-20: Bernier-style sparse pings with prime-number spacing
 - 21-25: Glitch/deterministic (pi digits, Rule 30, Rule 110)
 
-## Synth preset categories (shared, 25 total)
-- 1-5: Pure sine pips (Ikeda test tone)
-- 6-10: Damped sinusoids (Bernier tuning fork)
-- 11-15: Noise bursts and filtered clicks
-- 16-20: FM micro-textures (metallic/bell)
-- 21-25: Square/triangle digital glitches
+## Synth preset categories (shared, 40 total)
+- 0: OFF
+- 1-5: Pure sine pips (Ikeda test tone, 0.2ms–20ms)
+- 6-10: Damped sinusoids (Bernier tuning fork, tau=3ms–200ms)
+- 11-13: Filtered noise bursts (0.1ms–18ms)
+- 14-16: Click/percussive (WAVE_CLICK)
+- 17-19: FM micro-textures (metallic/bell)
+- 20-22: Pink/brown noise filtered
+- 23-27: Various clicks, pings, CV tones
+- 28-34: PolyBLEP anti-aliased waveforms (Square, Tri, Clean AM)
+- 35-40: Data & specialized (Gauss Pings, Ping bursts, Data Quanta)
+
+## Artist-inspired features
+- **Ikeda (data sonification, frequencies)**: Rhythm patterns based on pi/e/phi binary, prime spacing, Rule 30/110 CA
+- **Bernier (sparse pings, tuning fork)**: Damped waveform, sparse patterns, sub-div octave control
+- **Bretschneider (click density variation, spectral scatter)**: vN_tone_rnd randomizes tone per impulse ±100%
+- **Hainbach (heterodyne, detune, sweep)**: Detune (beat frequency 0–20Hz), Sweep (pitch envelope arc), Sub Div (harmonics)
+- **Frank Bretschneider (impulse click synthesis)**: FM synthesis, impulse waveform, sample-and-hold modulation
+
+## Per-impulse tone randomization (vN_tone_rnd)
+Each rhythm trigger applies a random offset to the voice's base tone:
+```
+tone_eff = clamp(tone + rand(-1..+1) × 2 × tone_rnd, 0, 1)
+```
+- **0.0**: No randomization (deterministic tone per voice)
+- **0.5**: Tone varies ±50% per hit (Bretschneider glitch scatter)
+- **1.0**: Tone completely randomized per hit (spectral chaos)
+
+This randomization is **seeded and pattern-repeatable** — the same rhythm pattern always generates the same sequence of random tones, enabling consistent polymetric variations.
 
 ## Critical constraints
 - NEVER write to `/tmp` — use `/data/UserData/` on device
