@@ -1300,7 +1300,14 @@ static void signal_set_param(signal_instance_t *inst, const char *key, const cha
         snprintf(k, sizeof(k), "v%d_sub_div", v + 1);
         if (strcmp(key, k) == 0) { inst->voices[v].sub_div = (int)clampf(atof(val), 1, 8); return; }
         snprintf(k, sizeof(k), "v%d_tone_rnd", v + 1);
-        if (strcmp(key, k) == 0) { inst->voices[v].tone_rnd = clampf(atof(val), 0, 1); return; }
+        if (strcmp(key, k) == 0) {
+            char temp[16];
+            snprintf(temp, sizeof(temp), "%s", val);
+            char *p = strchr(temp, '%');
+            if (p) *p = '\0';
+            inst->voices[v].tone_rnd = clampf(atof(temp) / 100.0f, 0, 1);
+            return;
+        }
     }
 
     /* Patch page */
@@ -1443,6 +1450,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v1_sub_div\",\"name\":\"V1 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v1_sweep\",\"name\":\"V1 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v1_detune\",\"name\":\"V1 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
+    "{\"key\":\"v1_tone_rnd\",\"name\":\"Tone Rnd\",\"type\":\"enum\",\"options\":[\"0%\",\"1%\",\"2%\",\"3%\",\"4%\",\"5%\",\"6%\",\"7%\",\"8%\",\"9%\",\"10%\",\"11%\",\"12%\",\"13%\",\"14%\",\"15%\",\"16%\",\"17%\",\"18%\",\"19%\",\"20%\",\"21%\",\"22%\",\"23%\",\"24%\",\"25%\",\"26%\",\"27%\",\"28%\",\"29%\",\"30%\",\"31%\",\"32%\",\"33%\",\"34%\",\"35%\",\"36%\",\"37%\",\"38%\",\"39%\",\"40%\",\"41%\",\"42%\",\"43%\",\"44%\",\"45%\",\"46%\",\"47%\",\"48%\",\"49%\",\"50%\",\"51%\",\"52%\",\"53%\",\"54%\",\"55%\",\"56%\",\"57%\",\"58%\",\"59%\",\"60%\",\"61%\",\"62%\",\"63%\",\"64%\",\"65%\",\"66%\",\"67%\",\"68%\",\"69%\",\"70%\",\"71%\",\"72%\",\"73%\",\"74%\",\"75%\",\"76%\",\"77%\",\"78%\",\"79%\",\"80%\",\"81%\",\"82%\",\"83%\",\"84%\",\"85%\",\"86%\",\"87%\",\"88%\",\"89%\",\"90%\",\"91%\",\"92%\",\"93%\",\"94%\",\"95%\",\"96%\",\"97%\",\"98%\",\"99%\",\"100%\"]},"
     "{\"key\":\"v2_preset\",\"name\":\"V2 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v2_vol\",\"name\":\"V2 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v2_vfreq\",\"name\":\"V2 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
@@ -1454,6 +1462,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v2_sub_div\",\"name\":\"V2 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v2_sweep\",\"name\":\"V2 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v2_detune\",\"name\":\"V2 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
+    "{\"key\":\"v2_tone_rnd\",\"name\":\"Tone Rnd\",\"type\":\"enum\",\"options\":[\"0%\",\"1%\",\"2%\",\"3%\",\"4%\",\"5%\",\"6%\",\"7%\",\"8%\",\"9%\",\"10%\",\"11%\",\"12%\",\"13%\",\"14%\",\"15%\",\"16%\",\"17%\",\"18%\",\"19%\",\"20%\",\"21%\",\"22%\",\"23%\",\"24%\",\"25%\",\"26%\",\"27%\",\"28%\",\"29%\",\"30%\",\"31%\",\"32%\",\"33%\",\"34%\",\"35%\",\"36%\",\"37%\",\"38%\",\"39%\",\"40%\",\"41%\",\"42%\",\"43%\",\"44%\",\"45%\",\"46%\",\"47%\",\"48%\",\"49%\",\"50%\",\"51%\",\"52%\",\"53%\",\"54%\",\"55%\",\"56%\",\"57%\",\"58%\",\"59%\",\"60%\",\"61%\",\"62%\",\"63%\",\"64%\",\"65%\",\"66%\",\"67%\",\"68%\",\"69%\",\"70%\",\"71%\",\"72%\",\"73%\",\"74%\",\"75%\",\"76%\",\"77%\",\"78%\",\"79%\",\"80%\",\"81%\",\"82%\",\"83%\",\"84%\",\"85%\",\"86%\",\"87%\",\"88%\",\"89%\",\"90%\",\"91%\",\"92%\",\"93%\",\"94%\",\"95%\",\"96%\",\"97%\",\"98%\",\"99%\",\"100%\"]},"
     "{\"key\":\"v3_preset\",\"name\":\"V3 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v3_vol\",\"name\":\"V3 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v3_vfreq\",\"name\":\"V3 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
@@ -1465,6 +1474,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v3_sub_div\",\"name\":\"V3 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v3_sweep\",\"name\":\"V3 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v3_detune\",\"name\":\"V3 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
+    "{\"key\":\"v3_tone_rnd\",\"name\":\"Tone Rnd\",\"type\":\"enum\",\"options\":[\"0%\",\"1%\",\"2%\",\"3%\",\"4%\",\"5%\",\"6%\",\"7%\",\"8%\",\"9%\",\"10%\",\"11%\",\"12%\",\"13%\",\"14%\",\"15%\",\"16%\",\"17%\",\"18%\",\"19%\",\"20%\",\"21%\",\"22%\",\"23%\",\"24%\",\"25%\",\"26%\",\"27%\",\"28%\",\"29%\",\"30%\",\"31%\",\"32%\",\"33%\",\"34%\",\"35%\",\"36%\",\"37%\",\"38%\",\"39%\",\"40%\",\"41%\",\"42%\",\"43%\",\"44%\",\"45%\",\"46%\",\"47%\",\"48%\",\"49%\",\"50%\",\"51%\",\"52%\",\"53%\",\"54%\",\"55%\",\"56%\",\"57%\",\"58%\",\"59%\",\"60%\",\"61%\",\"62%\",\"63%\",\"64%\",\"65%\",\"66%\",\"67%\",\"68%\",\"69%\",\"70%\",\"71%\",\"72%\",\"73%\",\"74%\",\"75%\",\"76%\",\"77%\",\"78%\",\"79%\",\"80%\",\"81%\",\"82%\",\"83%\",\"84%\",\"85%\",\"86%\",\"87%\",\"88%\",\"89%\",\"90%\",\"91%\",\"92%\",\"93%\",\"94%\",\"95%\",\"96%\",\"97%\",\"98%\",\"99%\",\"100%\"]},"
     "{\"key\":\"v4_preset\",\"name\":\"V4 Preset\",\"type\":\"int\",\"min\":0,\"max\":40,\"step\":1},"
     "{\"key\":\"v4_vol\",\"name\":\"V4 Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v4_vfreq\",\"name\":\"V4 Freq\",\"type\":\"float\",\"min\":20,\"max\":20000,\"step\":1},"
@@ -1476,6 +1486,7 @@ static const char CHAIN_PARAMS_JSON[] =
     "{\"key\":\"v4_sub_div\",\"name\":\"V4 Sub Div\",\"type\":\"int\",\"min\":1,\"max\":8,\"step\":1},"
     "{\"key\":\"v4_sweep\",\"name\":\"V4 Sweep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01},"
     "{\"key\":\"v4_detune\",\"name\":\"V4 Detune\",\"type\":\"float\",\"min\":0,\"max\":20,\"step\":0.1},"
+    "{\"key\":\"v4_tone_rnd\",\"name\":\"Tone Rnd\",\"type\":\"enum\",\"options\":[\"0%\",\"1%\",\"2%\",\"3%\",\"4%\",\"5%\",\"6%\",\"7%\",\"8%\",\"9%\",\"10%\",\"11%\",\"12%\",\"13%\",\"14%\",\"15%\",\"16%\",\"17%\",\"18%\",\"19%\",\"20%\",\"21%\",\"22%\",\"23%\",\"24%\",\"25%\",\"26%\",\"27%\",\"28%\",\"29%\",\"30%\",\"31%\",\"32%\",\"33%\",\"34%\",\"35%\",\"36%\",\"37%\",\"38%\",\"39%\",\"40%\",\"41%\",\"42%\",\"43%\",\"44%\",\"45%\",\"46%\",\"47%\",\"48%\",\"49%\",\"50%\",\"51%\",\"52%\",\"53%\",\"54%\",\"55%\",\"56%\",\"57%\",\"58%\",\"59%\",\"60%\",\"61%\",\"62%\",\"63%\",\"64%\",\"65%\",\"66%\",\"67%\",\"68%\",\"69%\",\"70%\",\"71%\",\"72%\",\"73%\",\"74%\",\"75%\",\"76%\",\"77%\",\"78%\",\"79%\",\"80%\",\"81%\",\"82%\",\"83%\",\"84%\",\"85%\",\"86%\",\"87%\",\"88%\",\"89%\",\"90%\",\"91%\",\"92%\",\"93%\",\"94%\",\"95%\",\"96%\",\"97%\",\"98%\",\"99%\",\"100%\"]},"
     "{\"key\":\"patch\",\"name\":\"Patch\",\"type\":\"enum\",\"options\":[\"Init\",\"Ikeda Grid\",\"Bernier\",\"Morse CQ\",\"Mathcore\",\"Pink Rain\",\"Heterodyne\",\"Sub Harm\",\"CA Automata\",\"FM Bell\",\"AM Texture\",\"Brown Pulse\",\"Clk Matrix\",\"Sweep Casc\",\"Fibonacci\",\"Digi Glitch\",\"Chirp Field\",\"Phase Cloud\",\"Test Signal\",\"CW Radio\",\"Cantor\",\"Noise Gate\",\"Sub Bass\",\"Thue-Morse\",\"Pink Grid\",\"Metallic FM\",\"Minimal\",\"Maximum\",\"Rule 30\",\"Freq Lat.\",\"Gauss Pings\",\"Ikeda Data\",\"Tuning Fork\",\"Fork Harmony\",\"BL Square\",\"Data Quanta\",\"Resonant Bell\",\"Sine Study\",\"Noise Field\",\"Aleatoric\"]},"
     "{\"key\":\"rnd_patch\",\"name\":\"Rnd Patch\",\"type\":\"enum\",\"options\":[\"0\",\"1\"]},"
     "{\"key\":\"rnd_rytm\",\"name\":\"Rnd Rytm\",\"type\":\"enum\",\"options\":[\"0\",\"1\"]},"
@@ -1577,19 +1588,19 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
             "\"voice1\":{\"name\":\"Voice 1\","
             "\"knobs\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_decay\",\"v1_detune\",\"v1_pan\"],"
             "\"params\":[\"v1_preset\",\"v1_vol\",\"v1_vfreq\",\"v1_wave\",\"v1_tone\",\"v1_decay\",\"v1_detune\",\"v1_pan\","
-            "\"v1_attack\",\"v1_sub_div\",\"v1_sweep\"]},"
+            "\"v1_attack\",\"v1_sub_div\",\"v1_sweep\",\"v1_tone_rnd\"]},"
             "\"voice2\":{\"name\":\"Voice 2\","
             "\"knobs\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_decay\",\"v2_detune\",\"v2_pan\"],"
             "\"params\":[\"v2_preset\",\"v2_vol\",\"v2_vfreq\",\"v2_wave\",\"v2_tone\",\"v2_decay\",\"v2_detune\",\"v2_pan\","
-            "\"v2_attack\",\"v2_sub_div\",\"v2_sweep\"]},"
+            "\"v2_attack\",\"v2_sub_div\",\"v2_sweep\",\"v2_tone_rnd\"]},"
             "\"voice3\":{\"name\":\"Voice 3\","
             "\"knobs\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_decay\",\"v3_detune\",\"v3_pan\"],"
             "\"params\":[\"v3_preset\",\"v3_vol\",\"v3_vfreq\",\"v3_wave\",\"v3_tone\",\"v3_decay\",\"v3_detune\",\"v3_pan\","
-            "\"v3_attack\",\"v3_sub_div\",\"v3_sweep\"]},"
+            "\"v3_attack\",\"v3_sub_div\",\"v3_sweep\",\"v3_tone_rnd\"]},"
             "\"voice4\":{\"name\":\"Voice 4\","
             "\"knobs\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_decay\",\"v4_detune\",\"v4_pan\"],"
             "\"params\":[\"v4_preset\",\"v4_vol\",\"v4_vfreq\",\"v4_wave\",\"v4_tone\",\"v4_decay\",\"v4_detune\",\"v4_pan\","
-            "\"v4_attack\",\"v4_sub_div\",\"v4_sweep\"]},"
+            "\"v4_attack\",\"v4_sub_div\",\"v4_sweep\",\"v4_tone_rnd\"]},"
             "\"general\":{\"name\":\"General\","
             "\"knobs\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\"],"
             "\"params\":[\"master_vol\",\"tempo_sync\",\"bpm\",\"bit_crush\",\"bit_rate\",\"stereo_w\",\"drift\",\"jitter\",\"dc_filter\",\"out_mode\"]}"
@@ -1663,6 +1674,8 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%.4f", vp->detune);
         snprintf(k, sizeof(k), "v%d_sub_div", v + 1);
         if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%d", vp->sub_div);
+        snprintf(k, sizeof(k), "v%d_tone_rnd", v + 1);
+        if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%.0f%%", vp->tone_rnd * 100.0f);
     }
 
     /* Patch page */
