@@ -1,7 +1,7 @@
 {
   "id": "signal",
   "name": "Signal",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "api_version": 2,
   "component_type": "sound_generator",
   "description": "Polymetric microsound rhythm generator with breakbeat engine + Scene A/B morph",

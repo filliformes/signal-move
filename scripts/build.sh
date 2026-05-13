@@ -19,6 +19,7 @@ CONTAINER_ID=$(MSYS_NO_PATHCONV=1 docker create schwung-builder \
         /build/src/dsp/${MODULE_ID}.c \
         -lm && \
     cp /build/src/module.json /build/dist/${MODULE_ID}/ && \
+    if [ -f /build/src/help.json ]; then cp /build/src/help.json /build/dist/${MODULE_ID}/; fi && \
     cd /build/dist && tar -czf ${MODULE_ID}-module.tar.gz ${MODULE_ID}/")
 
 # Copy entire src dir into container
@@ -36,6 +37,8 @@ fi
 docker cp "$CONTAINER_ID:/build/dist/$MODULE_ID/dsp.so" "$WIN_ROOT/dist/$MODULE_ID/"
 # Always copy from src (not from inside Docker) so latest edits are captured
 cp -f "$ROOT/src/module.json" "$ROOT/dist/$MODULE_ID/module.json"
+# Shadow UI help (per-module dir) — optional
+[ -f "$ROOT/src/help.json" ] && cp -f "$ROOT/src/help.json" "$ROOT/dist/$MODULE_ID/help.json"
 docker cp "$CONTAINER_ID:/build/dist/$MODULE_ID-module.tar.gz" "$WIN_ROOT/dist/"
 docker rm "$CONTAINER_ID" > /dev/null
 

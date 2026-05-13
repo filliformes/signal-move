@@ -1,0 +1,160 @@
+{
+  "title": "Signal",
+  "children": [
+    {
+      "title": "About",
+      "lines": [
+        "Polymetric microsound",
+        "rhythm generator with",
+        "breakbeat engine &",
+        "Scene A/B morph.",
+        "",
+        "4 self-sequencing",
+        "voices, each = rhythm",
+        "preset + micro-synth",
+        "burst (0.1-100 ms).",
+        "",
+        "25 rhythms x 25 synths",
+        "x 4 voices = huge",
+        "combinatorial space."
+      ]
+    },
+    {
+      "title": "Page: Sequences",
+      "lines": [
+        "K1-4 seq1..seq4",
+        "    0=OFF, 1-25 =",
+        "    rhythm preset",
+        "    per voice",
+        "",
+        "K5-8 syn1..syn4",
+        "    0=OFF, 1-25 =",
+        "    synth preset",
+        "    per voice",
+        "",
+        "Voice plays only when",
+        "both seqN and synN",
+        "are non-zero."
+      ]
+    },
+    {
+      "title": "Page: Mix",
+      "lines": [
+        "K1-4 v1-4 level",
+        "K5-8 v1-4 freq",
+        "    20-20000 Hz base",
+        "    pitch per voice",
+        "",
+        "Per-voice levels are",
+        "post-pan, pre-master.",
+        "",
+        "Freq sets the tonal",
+        "centre; micro-synth",
+        "envelopes & FM ride",
+        "around it."
+      ]
+    },
+    {
+      "title": "Page: Params",
+      "lines": [
+        "K1 Root (Free/C..B)",
+        "K2 Scale",
+        "    Free = no quant",
+        "K3 Density global",
+        "    event multiplier",
+        "K4 Chaos (random",
+        "    timing/density)",
+        "K5 Gravity (phase",
+        "    align: 0=free,",
+        "    1=locked)",
+        "K6 Clk Div 1-32",
+        "K7 Morse Spd",
+        "K8 Swing"
+      ]
+    },
+    {
+      "title": "Pages: Voix 1-4",
+      "lines": [
+        "Per-voice detail.",
+        "",
+        "K1 vN_preset 0-40",
+        "    (mirrors synN)",
+        "K2 vN_vol",
+        "K3 vN_vfreq",
+        "K4 vN_wave",
+        "    Sine, Impulse,",
+        "    Noise, Damped,",
+        "    Click, Square,",
+        "    Tri, FM, Pink,",
+        "    Brown, AM, Ping",
+        "K5 vN_tone bright",
+        "K6 vN_decay",
+        "    0.1-500 ms",
+        "K7 vN_detune 0-20Hz",
+        "    heterodyne beat",
+        "K8 vN_pan -1..+1",
+        "",
+        "Menu-only:",
+        " vN_attack",
+        " vN_sub_div",
+        " vN_sweep pitch env",
+        " vN_tone_rnd"
+      ]
+    },
+    {
+      "title": "Page: General",
+      "lines": [
+        "K1 Master Vol",
+        "K2 Tempo Sync",
+        "    Free / Sync",
+        "K3 Stereo Width",
+        "K4 Bit Crush 1-16",
+        "K5 Drift analog",
+        "    pitch wander",
+        "K6 Jitter timing",
+        "K7-K8 see menu"
+      ]
+    },
+    {
+      "title": "Scene A/B",
+      "lines": [
+        "Scene A and Scene B",
+        "store full plugin",
+        "state. The Morph",
+        "param crossfades all",
+        "knob values between",
+        "them in real time.",
+        "",
+        "Use Scene A/B for",
+        "live A/B switching",
+        "or slow generative",
+        "drift over a piece."
+      ]
+    },
+    {
+      "title": "Tips",
+      "lines": [
+        "Try seq=Morse with",
+        " synth=Ping for",
+        " telegraph clicks.",
+        "",
+        "Density low + Chaos",
+        " high = sparse,",
+        " unpredictable hits.",
+        "",
+        "Gravity high locks",
+        " voices into a",
+        " collective groove.",
+        "",
+        "Detune > 5 Hz on a",
+        " sine = audible AM",
+        " beat / phaser-like",
+        " modulation.",
+        "",
+        "Bit Crush 4-6 +",
+        " short decay = early",
+        " digital aesthetic."
+      ]
+    }
+  ]
+}
