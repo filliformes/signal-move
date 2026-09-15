@@ -2819,8 +2819,17 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         const char *kkey = KNOB_KEYS[pg][kn];
         if (strstr(key, "_name"))
             return snprintf(buf, buf_len, "%s", kkey);
-        if (strstr(key, "_value"))
+        if (strstr(key, "_value")) {
+            /* tone_rnd's direct key returns a RAW percentage number (so state
+             * round-trips through set_param, which strips '%' then /100); the
+             * display '%' belongs only here in the knob overlay. */
+            if (strstr(kkey, "_tone_rnd")) {
+                int vv = kkey[1] - '1';
+                if (vv >= 0 && vv < NUM_VOICES)
+                    return snprintf(buf, buf_len, "%.0f%%", inst->voices[vv].tone_rnd * 100.0f);
+            }
             return get_param(inst, kkey, buf, buf_len);
+        }
         return -1;
     }
 
@@ -2878,7 +2887,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
         snprintf(k, sizeof(k), "v%d_sub_div", v + 1);
         if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%d", vp->sub_div);
         snprintf(k, sizeof(k), "v%d_tone_rnd", v + 1);
-        if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%.0f%%", vp->tone_rnd * 100.0f);
+        if (strcmp(key, k) == 0) return snprintf(buf, buf_len, "%.0f", vp->tone_rnd * 100.0f);
     }
 
     /* Patch page — momentary action knobs always read back "0" (the wide-range
@@ -2953,15 +2962,29 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
     if (strcmp(key, "state") == 0) {
         int n = 0;
         int rem;
+        /* Overflow-safe: on any truncation, abandon and return -1 rather than
+         * emit a half-written state string. */
 #define STATE_W(fmt, ...) \
-    do { rem = buf_len - n - 1; \
-         if (rem <= 0) return n; \
-         n += snprintf(buf + n, (size_t)(rem), fmt, ##__VA_ARGS__); } while(0)
+    do { rem = buf_len - n; \
+         if (rem <= 0) return -1; \
+         { int _w = snprintf(buf + n, (size_t)(rem), fmt, ##__VA_ARGS__); \
+           if (_w < 0 || _w >= rem) return -1; \
+           n += _w; } } while(0)
 
+        /* patch index FIRST: on restore, set_param("patch",...) calls apply_patch()
+         * which overwrites the globals + all voices, so it must run before the
+         * individual params below override it with the actually-saved values. */
+        STATE_W("patch=%s;", PATCH_NAMES[inst->patch_idx]);
         STATE_W("density=%.4f;chaos=%.4f;gravity=%.4f;", inst->density, inst->chaos, inst->gravity);
         STATE_W("clk_div=%d;morse_spd=%.4f;swing=%.4f;", inst->clk_div, inst->morse_spd, inst->swing);
         STATE_W("master_vol=%.4f;stereo_w=%.4f;bit_crush=%d;bit_rate=%.4f;bpm=%.1f;", inst->master_vol, inst->stereo_w, inst->bit_crush, inst->bit_rate, inst->bpm);
         STATE_W("drift=%.4f;jitter=%.4f;", inst->drift, inst->jitter);
+        {
+            static const char *omodes[] = {"Stereo","Mono","Spread"};
+            int om = inst->out_mode; if (om < 0 || om > 2) om = 0;
+            STATE_W("all_decay=%.4f;dc_filter=%s;out_mode=%s;",
+                inst->all_decay, inst->dc_filter ? "On" : "Off", omodes[om]);
+        }
         STATE_W("mod_amount=%.4f;mod_speed=%.4f;mod_offset=%.4f;mod_freq=%.4f;mod_decay=%.4f;mod_pan=%.4f;mod_density=%.4f;mod_shape=%s;",
             inst->mod_amount,
             inst->mod_speed, inst->mod_offset, inst->mod_freq, inst->mod_decay,
@@ -2984,6 +3007,7 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
                 v+1, vp->sweep, v+1, vp->detune, v+1, vp->sub_div);
             STATE_W("v%d_level=%.4f;v%d_freq=%.2f;",
                 v+1, vp->level, v+1, vp->freq);
+            STATE_W("v%d_tone_rnd=%.0f;", v+1, vp->tone_rnd * 100.0f);
             STATE_W("v%d_improv=%.4f;v%d_push_pull=%.2f;v%d_bank_mode=%s;v%d_ghost_crescendo=%s;",
                 v+1, vp->improv, v+1, vp->push_pull,
                 v+1, BANK_MODE_NAMES[vp->bank_mode],
